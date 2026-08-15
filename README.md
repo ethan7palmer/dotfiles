@@ -20,15 +20,17 @@ Windows does not record the bit; to set it in the repo itself, run
 
 ## Status
 
-This repo is **partially built**. Right now `install.sh` installs the
-prerequisites and Claude Code, and nothing else — enough to get `claude`
+This repo is **partially built**. Right now `install.sh` installs Claude
+Code and its own prerequisites, and nothing else — enough to get `claude`
 running on the target machine so the rest of the repo can be built there.
+Nothing here needs to be installed by hand; `install.sh` installs everything
+listed below itself.
 
 Implemented:
 
-| Script                   | Does                                                  |
+| Script                   | Installs                                              |
 | ------------------------ | ----------------------------------------------------- |
-| `scripts/00-prereqs.sh`  | apt: curl, wget, stow, gnupg, ca-certificates, software-properties-common |
+| `scripts/00-prereqs.sh`  | curl, wget, stow, gnupg, ca-certificates, software-properties-common (via apt) |
 | `scripts/60-claude-code.sh` | Claude Code via Anthropic's signed apt repository   |
 
 Still to write:
