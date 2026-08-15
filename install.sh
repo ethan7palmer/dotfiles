@@ -4,15 +4,44 @@
 #
 #   Phase 1 — interactive pre-flight (summary + explicit confirmation)
 #   Phase 2 — unattended execution of scripts/*.sh in numeric order
-#   Phase 3 — final report of what still needs a human
+#   Phase 3 — reference: what to know / do, printed every run (not just the
+#             first) so it's easy to glance at again later
 #
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
 # ---------------------------------------------------------------------------
+# Output styling — only when stdout is an interactive terminal that supports
+# color, so redirecting output to a log file stays plain, readable text.
+# ---------------------------------------------------------------------------
+
+if [ -t 1 ] && command -v tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
+    BOLD="$(tput bold)"
+    RESET="$(tput sgr0)"
+    CYAN="$(tput setaf 6)"
+    GREEN="$(tput setaf 2)"
+else
+    BOLD="" RESET="" CYAN="" GREEN=""
+fi
+
+phase() {
+    echo
+    echo "${BOLD}${GREEN}════════════════════════════════════════════════════════${RESET}"
+    echo "${BOLD}${GREEN}  $1${RESET}"
+    echo "${BOLD}${GREEN}════════════════════════════════════════════════════════${RESET}"
+}
+
+section() {
+    echo
+    echo "${BOLD}${CYAN}-- $1${RESET}"
+}
+
+# ---------------------------------------------------------------------------
 # Phase 1 — interactive pre-flight
 # ---------------------------------------------------------------------------
+
+phase "Phase 1/3 — Pre-flight"
 
 GITCONFIG_LOCAL="${HOME}/.gitconfig.local"
 SSH_KEY="${HOME}/.ssh/id_ed25519"
@@ -41,7 +70,7 @@ prompt_with_default() {
     done
 }
 
-echo "== Git identity =="
+section "Git identity"
 echo "This is the author name and email attached to every commit made on"
 echo "this machine (visible in git log, GitHub commit history, blame, etc)."
 DOTFILES_GIT_NAME="$(prompt_with_default "Git user.name" "$(current_git_value user.name)")"
@@ -51,9 +80,8 @@ echo "contribution graph), this must be an email added to your GitHub"
 echo "account under Settings -> Emails — it doesn't have to be your primary"
 echo "one, and GitHub's private noreply address works too."
 DOTFILES_GIT_EMAIL="$(prompt_with_default "Git user.email" "$(current_git_value user.email)")"
-echo
 
-echo "== SSH key comment =="
+section "SSH key comment"
 echo "A label attached to the SSH key so it's identifiable wherever it's"
 echo "listed later — e.g. on GitHub's (or any other service's) SSH keys"
 echo "page, or in \`ssh-add -l\`."
@@ -71,39 +99,58 @@ echo
 
 export DOTFILES_GIT_NAME DOTFILES_GIT_EMAIL DOTFILES_SSH_COMMENT
 
-cat <<SUMMARY
-This will install the following on this machine:
+echo
+echo "${BOLD}This will install the following on this machine:${RESET}"
 
-  Prerequisites (apt)
-    curl, wget, stow, gnupg, ca-certificates, software-properties-common, jq
-    — needed by the remaining scripts, to add third-party apt repos, and
-    (jq) to parse JSON in the Claude Code status line.
+section "Prerequisites (apt)"
+echo "curl, wget, stow, gnupg, ca-certificates, software-properties-common, jq"
+echo "— needed by the remaining scripts, to add third-party apt repos, and"
+echo "(jq) to parse JSON in the Claude Code status line."
 
-  Kitty (apt)
-    Terminal emulator.
+section "Kitty (apt)"
+echo "Terminal emulator."
 
-  Google Chrome (apt, via Google's official signed repository)
-    Adds Google's signing key to /etc/apt/keyrings, registers the stable
-    channel in /etc/apt/sources.list.d, then installs google-chrome-stable.
+section "Google Chrome (apt, via Google's official signed repository)"
+echo "Adds Google's signing key to /etc/apt/keyrings, registers the stable"
+echo "channel in /etc/apt/sources.list.d, then installs google-chrome-stable."
 
-  Git identity
-    user.name "${DOTFILES_GIT_NAME}" / user.email "${DOTFILES_GIT_EMAIL}"
-    written to ~/.gitconfig.local (untracked, never committed).
+section "zsh (apt) + zinit"
+echo "Makes zsh the default shell (via chsh) and clones zinit to"
+echo "~/.local/share/zinit/zinit.git as its plugin manager."
 
-  SSH key
-    ~/.ssh/id_ed25519 generated if missing; comment set to
-    "${DOTFILES_SSH_COMMENT}".
+section "Starship (apt)"
+echo "Cross-shell prompt, wired into both .bashrc and .zshrc (falls back to"
+echo "the plain colored prompt already in each if starship isn't installed)."
 
-  Claude Code (apt, via Anthropic's signed repository)
-    Adds the Claude Code signing key to /etc/apt/keyrings, registers the
-    stable channel in /etc/apt/sources.list.d, then installs \`claude-code\`.
-    Falls back to the official install script only if apt cannot install it.
+section "Git identity"
+echo "user.name \"${DOTFILES_GIT_NAME}\" / user.email \"${DOTFILES_GIT_EMAIL}\""
+echo "written to ~/.gitconfig.local (untracked, never committed)."
 
-  Stow symlinks
-    Everything under home/ symlinked into \$HOME (e.g. home/.gitconfig ->
-    ~/.gitconfig), backing up any real file already at that path first.
+section "SSH key"
+echo "~/.ssh/id_ed25519 generated if missing; comment set to"
+echo "\"${DOTFILES_SSH_COMMENT}\"."
 
-SUMMARY
+section "Claude Code (apt, via Anthropic's signed repository)"
+echo "Adds the Claude Code signing key to /etc/apt/keyrings, registers the"
+echo "stable channel in /etc/apt/sources.list.d, then installs \`claude-code\`."
+echo "Falls back to the official install script only if apt cannot install it."
+
+section "Docker (apt, via Docker's official signed repository)"
+echo "Adds Docker's signing key to /etc/apt/keyrings, registers the stable"
+echo "channel in /etc/apt/sources.list.d, then installs docker-ce docker-ce-cli"
+echo "containerd.io docker-buildx-plugin docker-compose-plugin. Adds"
+echo "${USER} to the docker group if not already a member."
+
+section "herdr (official installer)"
+echo "Installs to ~/.local/bin via curl -fsSL https://herdr.dev/install.sh | sh,"
+echo "then runs \`herdr integration install claude\` so herdr's sidebar gets"
+echo "native state-awareness for Claude Code sessions (this updates"
+echo "~/.claude/settings.json with hook entries)."
+
+section "Stow symlinks"
+echo "Everything under home/ symlinked into \$HOME (e.g. home/.gitconfig ->"
+echo "~/.gitconfig), backing up any real file already at that path first."
+echo
 
 reply=""
 read -r -p "Continue? [y/N] " reply || true
@@ -119,70 +166,93 @@ esac
 # Phase 2 — unattended execution
 # ---------------------------------------------------------------------------
 
-# Recorded before anything runs, so the Phase 3 report can describe what
-# actually changed rather than just what the end state looks like.
-claude_was_present=false
-if command -v claude >/dev/null 2>&1; then
-    claude_was_present=true
-fi
-
-ssh_key_was_present=false
-if [ -f "${SSH_KEY}.pub" ]; then
-    ssh_key_was_present=true
-fi
+phase "Phase 2/3 — Installing"
 
 for script in scripts/*.sh; do
     echo
-    echo "==> Running ${script}"
+    echo "${BOLD}${CYAN}==> ${script}${RESET}"
     bash "${script}"
 done
 
 # ---------------------------------------------------------------------------
-# Phase 3 — final report
+# Phase 3 — reference report
+#
+# Printed every run, not just when something changed — this is a reference
+# checklist you can glance at again later, not just a diff of what's new.
 # ---------------------------------------------------------------------------
 
+phase "Phase 3/3 — What to know"
+
+case "$(getent passwd "${USER}" | cut -d: -f7)" in
+    */zsh)
+        section "Shell"
+        echo "Default shell is zsh. If you just switched to it, open a new"
+        echo "terminal/login session for it to take effect — chsh doesn't"
+        echo "affect a shell that's already running."
+        ;;
+esac
+
+if command -v starship >/dev/null 2>&1; then
+    section "Prompt"
+    echo "Starship is installed. If you just installed it, open a new"
+    echo "terminal (or run \`exec \$SHELL\`) for its prompt to take effect —"
+    echo "the current shell already loaded .bashrc/.zshrc before starship"
+    echo "existed."
+fi
+
+section "Claude Code"
+if command -v claude >/dev/null 2>&1; then
+    echo "If you haven't already, run \`claude\` and log in when prompted."
+    echo "Claude Code needs a Pro, Max, Team, Enterprise, or Console account."
+else
+    echo "\`claude\` is not on your PATH in this shell. If it was installed"
+    echo "via the official install script it lives in ~/.local/bin — open a"
+    echo "new shell, or add that directory to your PATH."
+fi
+
+if id -nG "${USER}" 2>/dev/null | grep -qw docker; then
+    section "Docker"
+    echo "You're in the docker group. If you were just added, log out and"
+    echo "back in (or reboot) — group membership is read at login, not"
+    echo "live, so until then \`docker\` commands fail with a permissions"
+    echo "error (Cannot connect to the Docker daemon...permission denied)."
+fi
+
+if [ -f "${SSH_KEY}.pub" ]; then
+    section "SSH key"
+    echo "$(cat "${SSH_KEY}.pub")"
+    echo
+    echo "If you haven't already, add it at github.com under Settings ->"
+    echo "SSH and GPG keys (paste the line above into \"Key\", give it a"
+    echo "title), then verify it with:"
+    echo
+    echo "  ssh -T git@github.com"
+    echo
+    echo "That trusts GitHub's host fingerprint on first connect (type"
+    echo "\"yes\" when asked) and confirms the key works — look for"
+    echo "\"Hi <username>! You've successfully authenticated...\" in the"
+    echo "output."
+fi
+
+# The Day 0 clone in this README uses https://, so pushing back to this repo
+# will fail until the remote is switched to SSH — install.sh only sets up an
+# SSH key, not HTTPS credentials.
+origin_url="$(git config --get remote.origin.url 2>/dev/null || true)"
+if [ -f "${SSH_KEY}.pub" ] && [ "${origin_url#https://github.com/}" != "${origin_url}" ]; then
+    ssh_url="git@github.com:${origin_url#https://github.com/}"
+    case "${ssh_url}" in
+        *.git) ;;
+        *) ssh_url="${ssh_url}.git" ;;
+    esac
+    section "This repo's remote"
+    echo "Set to HTTPS, not SSH. Pushing changes back to this dotfiles repo"
+    echo "will fail with HTTPS (no credentials are set up for that). Run"
+    echo "this to switch it to the SSH key above instead:"
+    echo
+    echo "  git remote set-url origin ${ssh_url}"
+fi
+
+section "Status"
+echo "The rest of this repo is not built yet. See \"Status\" in README.md"
+echo "for the scripts still to be written."
 echo
-echo "==> Done. What to do next:"
-echo
-
-if [ "${claude_was_present}" = false ]; then
-    cat <<'NEXT'
-  * Authenticate Claude Code.
-    The first time you run `claude` it opens a browser to log in. This is
-    expected — nothing here scripts or stores credentials. Claude Code needs
-    a Pro, Max, Team, Enterprise, or Console account.
-
-NEXT
-fi
-
-if ! command -v claude >/dev/null 2>&1; then
-    cat <<'NEXT'
-  * `claude` is not on your PATH in this shell.
-    If it was just installed via the official install script it lives in
-    ~/.local/bin — open a new shell, or add that directory to your PATH.
-
-NEXT
-fi
-
-if [ "${ssh_key_was_present}" = false ] && [ -f "${SSH_KEY}.pub" ]; then
-    cat <<NEXT
-  * Add your new SSH key to GitHub.
-    $(cat "${SSH_KEY}.pub")
-
-    Copy and paste the line above into the "Key" field at github.com under
-    Settings -> SSH and GPG keys (you'll also need to give it a title), so
-    you can push/pull over SSH and clone private repos.
-
-    Then run: ssh -T git@github.com
-    That trusts GitHub's host fingerprint on first connect (type "yes" when
-    asked) and confirms the key works — look for "Hi <username>! You've
-    successfully authenticated..." in the output.
-
-NEXT
-fi
-
-cat <<'NEXT'
-  * The rest of this repo is not built yet.
-    See "Status" in README.md for the scripts still to be written.
-
-NEXT

@@ -339,7 +339,7 @@ Ask the user only if something is genuinely ambiguous and consequential
 (e.g. which Neovim indentation width to default to, if truly unspecified).
 Otherwise use the sensible defaults specified above and proceed.
 
-## Addendum: bash conventions (documented, not yet implemented)
+## Addendum: bash conventions (implemented)
 
 The repo's structure has since diverged from this spec in a couple of
 deliberate ways — see README.md's "Layout"/"Status" sections for the
@@ -360,30 +360,45 @@ current, authoritative structure:
   curl/wget/stow/gnupg/ca-certificates/software-properties-common are
   plumbing dependencies for the other scripts, not standalone software.
 
-`scripts/20-zsh.sh` makes zsh the default *interactive login* shell, but
+`scripts/03-zsh.sh` makes zsh the default *interactive login* shell, but
 bash still runs in plenty of places on this machine — script shebangs,
 `sudo -i` / `su -`, and any non-interactive tooling that shells out to
 `bash` explicitly. Those deserve the same non-speculative treatment as
 everything else in this repo rather than being left as Ubuntu's untouched
 stock `.bashrc`.
 
-Planned addition, once picked up:
+Shipped:
 
 - No new numbered script — bash ships with Ubuntu already, and there's no
   package to install or per-machine value to prompt for. This is pure Stow
-  content, symlinked by the existing `scripts/90-stow-symlinks.sh`.
-- `home/.bashrc` — sane history behavior (append instead of overwrite,
-  dedupe, reasonable size), `EDITOR`/`VISUAL=nvim` (matching git's
-  `core.editor` and the zsh config), and sourcing `~/.bash_aliases` and
-  `~/.bash_functions` if present. Preserve Ubuntu's stock color-prompt and
-  bash-completion sourcing rather than dropping them outright — that's
-  existing default behavior, not a speculative addition.
-- `home/.bash_aliases` — empty/near-empty starter, same rationale as the
-  Claude Code starter files: actual aliases are personal preference to be
-  filled in later, not invented here.
-- `home/.bash_functions` — same: starter file, sourced from `.bashrc`, left
-  for the user to populate. (Not a standard file bash or Ubuntu look for by
-  default — the sourcing line in `.bashrc` is what makes it work.)
-- README.md: add these three files to "Still to write" and the `home/`
-  layout tree once work starts, and drop them from that list once shipped
-  (matching the existing convention for every other script/file in Status).
+  content, symlinked by the existing `scripts/12-stow-symlinks.sh`.
+- `home/.bashrc` — kept nearly identical to the machine's actual stock
+  `~/.bashrc` (same history settings, color prompt, bash-completion
+  sourcing, comments — diffed against the live file to confirm), with two
+  deliberate additions: `export PATH="$HOME/.local/bin:$PATH"` (several
+  tools, e.g. herdr, install there by default and it isn't on PATH
+  otherwise) and `EDITOR`/`VISUAL=nvim` (matching git's `core.editor` and
+  the zsh config).
+- `home/.bash_aliases` — the alias definitions that live inline in stock
+  Ubuntu's `~/.bashrc` (`ls`/`grep` color, `ll`/`la`/`l`, `alert`), moved
+  here since `.bashrc` already sources this file if present. Not invented —
+  moved as-is from the stock file.
+- No `home/.bash_functions` — considered, not used; skipped rather than
+  shipping an unused starter file.
+
+## Addendum: Starship prompt (implemented)
+
+Not in the original spec above. Added `scripts/04-starship.sh` (Starship is
+in Ubuntu's apt universe repo as of 25.04+, so this needed no vendor
+installer exception) right after the zsh stage, since it's the same
+"shell setup" concern — everything from `scripts/05-git-identity.sh` onward
+shifted up by one to make room. `home/.config/starship.toml` holds the
+config (`add_newline = false`, custom `format`, purple/red `character`
+success/error symbols, `cmd_duration` format) — verified against a
+downloaded Starship binary (`starship prompt --status=... --cmd-duration=...`)
+rather than just trusting the TOML parsed. `home/.bashrc`/`.zshrc` each gained
+a guarded `command -v starship && eval "$(starship init <shell>)"` at the
+very end, so the plain `PS1`/`PROMPT` set earlier in each file keeps working
+as a fallback if starship isn't installed — confirmed both the guard and the
+override (`PROMPT_COMMAND`/`precmd_functions` picking up starship) actually
+work, not just that the files parse.

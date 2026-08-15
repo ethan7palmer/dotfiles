@@ -29,25 +29,23 @@ Implemented:
 | `scripts/00-prereqs.sh`        | curl, wget, stow, gnupg, ca-certificates, software-properties-common, jq (via apt) |
 | `scripts/01-kitty.sh`          | Kitty terminal emulator (apt)                        |
 | `scripts/02-chrome.sh`         | Google Chrome (official apt repo)                    |
-| `scripts/04-git-identity.sh`   | `~/.gitconfig.local` user.name/user.email (from `install.sh` pre-flight) |
-| `scripts/05-ssh-key.sh`        | SSH keygen / comment relabel                         |
-| `scripts/08-claude-code.sh`    | Claude Code via Anthropic's signed apt repository    |
-| `scripts/11-stow-symlinks.sh`  | Symlinks `home/` into `$HOME` via `stow`, backing up real files first |
+| `scripts/03-zsh.sh`            | zsh (apt), zinit, `chsh` to zsh                      |
+| `scripts/04-starship.sh`       | Starship prompt (apt), wired into `.bashrc`/`.zshrc` |
+| `scripts/05-git-identity.sh`   | `~/.gitconfig.local` user.name/user.email (from `install.sh` pre-flight) |
+| `scripts/06-ssh-key.sh`        | SSH keygen / comment relabel                         |
+| `scripts/08-docker.sh`         | Docker CE (official apt repo), adds `${USER}` to the `docker` group |
+| `scripts/09-claude-code.sh`    | Claude Code via Anthropic's signed apt repository    |
+| `scripts/10-herdr.sh`          | herdr (official installer) + `herdr integration install claude` |
+| `scripts/12-stow-symlinks.sh`  | Symlinks `home/` into `$HOME` via `stow`, backing up real files first |
 
 `install.sh`'s pre-flight prompts for git `user.name` / `user.email` / SSH
 key comment (re-run-aware: shows current values as defaults) are also done.
 
 Still to write:
 
-- `scripts/03-zsh.sh` — zsh + zinit, `chsh` to zsh
-- `scripts/06-neovim.sh` — neovim via apt
-- `scripts/07-docker.sh` — Docker via Docker's official apt repo, `docker` group
-- `scripts/09-herdr.sh` — herdr + `herdr integration install claude`
-- `scripts/10-gnome-settings.sh` — `dconf load / < gnome/dconf-settings.ini`
-- `home/.zshrc`, `home/.config/kitty/kitty.conf`, `home/.config/nvim/init.lua`
-- `home/.bashrc`, `home/.bash_aliases`, `home/.bash_functions` — bash
-  conventions (history, `EDITOR`, sourcing the alias/function files). No new
-  numbered script needed, just Stow content — see PROMPT.md's addendum.
+- `scripts/07-neovim.sh` — neovim via apt
+- `scripts/11-gnome-settings.sh` — `dconf load / < gnome/dconf-settings.ini`
+- `home/.config/kitty/kitty.conf`, `home/.config/nvim/init.lua`
 - `gnome/dconf-settings.ini` — placeholder, captured on the target machine
 
 ## Layout
@@ -60,11 +58,15 @@ dotfiles/
 └── home/               # one stow package, mirrors $HOME directly, e.g.
     ├── .config/
     │   ├── nvim/init.lua
-    │   └── kitty/kitty.conf
+    │   ├── kitty/kitty.conf
+    │   ├── herdr/config.toml
+    │   └── starship.toml
     ├── .claude/
     │   ├── CLAUDE.md
     │   └── settings.json
     ├── .zshrc
+    ├── .bashrc
+    ├── .bash_aliases
     ├── .gitconfig
     └── .gitignore_global
 ```
@@ -73,7 +75,7 @@ dotfiles/
 means adding a numbered file — no edit to `install.sh` required.
 
 `home/` is a single GNU Stow package rather than one package per app —
-`scripts/90-stow-symlinks.sh` runs `stow -t "$HOME" home` once. Stow folds
+`scripts/12-stow-symlinks.sh` runs `stow -t "$HOME" home` once. Stow folds
 into existing real directories (like `~/.config`, which Ubuntu creates by
 default) and symlinks individual entries inside them, so e.g. `~/.config/nvim`
 becomes a symlink straight to `home/.config/nvim` without turning the whole
