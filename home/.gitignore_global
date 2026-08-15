@@ -1,0 +1,5 @@
+# Editor / OS noise, ignored globally so no repo needs its own entry for it.
+*.swp
+*.swo
+*~
+.DS_Store

@@ -11,6 +11,7 @@ PACKAGES=(
     gnupg
     ca-certificates
     software-properties-common
+    jq
 )
 
 missing=()

@@ -1,0 +1,27 @@
+[include]
+	path = ~/.gitconfig.local
+
+[init]
+	defaultBranch = main
+
+[pull]
+	rebase = true
+
+[push]
+	autoSetupRemote = true
+
+[core]
+	editor = nvim
+	excludesfile = ~/.gitignore_global
+
+[color]
+	ui = auto
+
+[merge]
+	conflictstyle = diff3
+
+[alias]
+	co = checkout
+	br = branch
+	st = status
+	lg = log --oneline --graph --decorate --all

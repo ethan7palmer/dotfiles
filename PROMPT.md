@@ -338,3 +338,52 @@ A working repository matching the structure above, with:
 Ask the user only if something is genuinely ambiguous and consequential
 (e.g. which Neovim indentation width to default to, if truly unspecified).
 Otherwise use the sensible defaults specified above and proceed.
+
+## Addendum: bash conventions (documented, not yet implemented)
+
+The repo's structure has since diverged from this spec in a couple of
+deliberate ways — see README.md's "Layout"/"Status" sections for the
+current, authoritative structure:
+
+- Stow packages live in a single `home/` tree that mirrors `$HOME` directly
+  (`home/.gitconfig`, `home/.config/nvim/init.lua`, etc.), not one
+  `stow/<package>/` directory per app as originally described above.
+- Scripts are one app/package each rather than one per category — e.g.
+  Kitty and Chrome (originally bundled in `scripts/10-apt-packages.sh`) are
+  now `scripts/01-kitty.sh` and `scripts/02-chrome.sh`; git identity and
+  the SSH key (originally bundled in `scripts/30-git-config.sh`) are now
+  `scripts/04-git-identity.sh` and `scripts/05-ssh-key.sh`. Numbering counts
+  up from 0 by 1 (`00, 01, 02, ...`), not by 10s — adding a script later
+  means renumbering everything after its insertion point, which is
+  accepted as the tradeoff for plain sequential numbers. The one exception
+  is `scripts/00-prereqs.sh`, which stays bundled —
+  curl/wget/stow/gnupg/ca-certificates/software-properties-common are
+  plumbing dependencies for the other scripts, not standalone software.
+
+`scripts/20-zsh.sh` makes zsh the default *interactive login* shell, but
+bash still runs in plenty of places on this machine — script shebangs,
+`sudo -i` / `su -`, and any non-interactive tooling that shells out to
+`bash` explicitly. Those deserve the same non-speculative treatment as
+everything else in this repo rather than being left as Ubuntu's untouched
+stock `.bashrc`.
+
+Planned addition, once picked up:
+
+- No new numbered script — bash ships with Ubuntu already, and there's no
+  package to install or per-machine value to prompt for. This is pure Stow
+  content, symlinked by the existing `scripts/90-stow-symlinks.sh`.
+- `home/.bashrc` — sane history behavior (append instead of overwrite,
+  dedupe, reasonable size), `EDITOR`/`VISUAL=nvim` (matching git's
+  `core.editor` and the zsh config), and sourcing `~/.bash_aliases` and
+  `~/.bash_functions` if present. Preserve Ubuntu's stock color-prompt and
+  bash-completion sourcing rather than dropping them outright — that's
+  existing default behavior, not a speculative addition.
+- `home/.bash_aliases` — empty/near-empty starter, same rationale as the
+  Claude Code starter files: actual aliases are personal preference to be
+  filled in later, not invented here.
+- `home/.bash_functions` — same: starter file, sourced from `.bashrc`, left
+  for the user to populate. (Not a standard file bash or Ubuntu look for by
+  default — the sourcing line in `.bashrc` is what makes it work.)
+- README.md: add these three files to "Still to write" and the `home/`
+  layout tree once work starts, and drop them from that list once shipped
+  (matching the existing convention for every other script/file in Status).
