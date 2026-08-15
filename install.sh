@@ -110,6 +110,10 @@ echo "(jq) to parse JSON in the Claude Code status line."
 section "Kitty (apt)"
 echo "Terminal emulator."
 
+section "Hack Nerd Font Mono (Nerd Fonts' official GitHub releases)"
+echo "No apt package exists for it. Installed to ~/.local/share/fonts (no"
+echo "sudo); used by kitty.conf's font_family."
+
 section "Google Chrome (apt, via Google's official signed repository)"
 echo "Adds Google's signing key to /etc/apt/keyrings, registers the stable"
 echo "channel in /etc/apt/sources.list.d, then installs google-chrome-stable."

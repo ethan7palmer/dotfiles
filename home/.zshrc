@@ -47,6 +47,12 @@ source "${ZINIT_HOME}/zinit.zsh"
 zinit light zsh-users/zsh-autosuggestions
 zinit light zsh-users/zsh-syntax-highlighting
 
+# zsh's completion system (the thing that makes `cd <Tab>` list directories,
+# and gives command-aware completion generally) isn't active until this
+# runs — without it, Tab falls back to much more limited behavior.
+autoload -Uz compinit
+compinit
+
 # Starship (if installed) replaces the PROMPT set above with its own dynamic
 # prompt on every command — keeping the plain one above means there's still
 # a working colored prompt if starship isn't installed.

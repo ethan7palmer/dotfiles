@@ -1,3 +1,6 @@
 # herdr works fine with no config file at all — add settings here as you
 # want to customize keybindings, theme, sidebar layout, notifications, etc.
 # Full reference: https://herdr.dev/docs/configuration/
+
+[ui]
+agent_panel_sort = "spaces"

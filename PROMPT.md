@@ -350,9 +350,9 @@ current, authoritative structure:
   `stow/<package>/` directory per app as originally described above.
 - Scripts are one app/package each rather than one per category — e.g.
   Kitty and Chrome (originally bundled in `scripts/10-apt-packages.sh`) are
-  now `scripts/01-kitty.sh` and `scripts/02-chrome.sh`; git identity and
+  now `scripts/01-kitty.sh` and `scripts/03-chrome.sh`; git identity and
   the SSH key (originally bundled in `scripts/30-git-config.sh`) are now
-  `scripts/04-git-identity.sh` and `scripts/05-ssh-key.sh`. Numbering counts
+  `scripts/06-git-identity.sh` and `scripts/07-ssh-key.sh`. Numbering counts
   up from 0 by 1 (`00, 01, 02, ...`), not by 10s — adding a script later
   means renumbering everything after its insertion point, which is
   accepted as the tradeoff for plain sequential numbers. The one exception
@@ -360,7 +360,7 @@ current, authoritative structure:
   curl/wget/stow/gnupg/ca-certificates/software-properties-common are
   plumbing dependencies for the other scripts, not standalone software.
 
-`scripts/03-zsh.sh` makes zsh the default *interactive login* shell, but
+`scripts/04-zsh.sh` makes zsh the default *interactive login* shell, but
 bash still runs in plenty of places on this machine — script shebangs,
 `sudo -i` / `su -`, and any non-interactive tooling that shells out to
 `bash` explicitly. Those deserve the same non-speculative treatment as
@@ -371,7 +371,7 @@ Shipped:
 
 - No new numbered script — bash ships with Ubuntu already, and there's no
   package to install or per-machine value to prompt for. This is pure Stow
-  content, symlinked by the existing `scripts/12-stow-symlinks.sh`.
+  content, symlinked by the existing `scripts/13-stow-symlinks.sh`.
 - `home/.bashrc` — kept nearly identical to the machine's actual stock
   `~/.bashrc` (same history settings, color prompt, bash-completion
   sourcing, comments — diffed against the live file to confirm), with two
@@ -388,10 +388,10 @@ Shipped:
 
 ## Addendum: Starship prompt (implemented)
 
-Not in the original spec above. Added `scripts/04-starship.sh` (Starship is
+Not in the original spec above. Added `scripts/05-starship.sh` (Starship is
 in Ubuntu's apt universe repo as of 25.04+, so this needed no vendor
 installer exception) right after the zsh stage, since it's the same
-"shell setup" concern — everything from `scripts/05-git-identity.sh` onward
+"shell setup" concern — everything from `scripts/06-git-identity.sh` onward
 shifted up by one to make room. `home/.config/starship.toml` holds the
 config (`add_newline = false`, custom `format`, purple/red `character`
 success/error symbols, `cmd_duration` format) — verified against a
@@ -402,3 +402,37 @@ very end, so the plain `PS1`/`PROMPT` set earlier in each file keeps working
 as a fallback if starship isn't installed — confirmed both the guard and the
 override (`PROMPT_COMMAND`/`precmd_functions` picking up starship) actually
 work, not just that the files parse.
+
+## Addendum: Hack Nerd Font + kitty.conf (implemented)
+
+Not in the original spec above. Kitty was defaulting to bash even after
+`chsh` set zsh as the default shell — Kitty's `shell` setting reads `$SHELL`
+first, which is inherited from the desktop session's environment at login
+and isn't refreshed by `chsh` mid-session. Fixed with `shell zsh` in
+`home/.config/kitty/kitty.conf` (the file the original PROMPT.md structure
+above called for but was still unwritten) rather than relying on a desktop
+logout/login. Verified by loading the config through kitty's own Python API
+(`kitty +runpy`), not just eyeballing the syntax.
+
+Separately, `home/.zshrc` never called `compinit`, so zsh's completion
+system (the thing that makes `cd <Tab>` list directories) was never active —
+added `autoload -Uz compinit; compinit` after the zinit plugin loads.
+Verified that `_main_complete`/`_cd` actually load afterward, since a full
+interactive keypress simulation via `zpty` proved too unreliable to trust
+either way.
+
+Also added `scripts/02-nerd-font.sh` right after Kitty (shifting everything
+from `scripts/03-chrome.sh` onward up by one, same renumbering tradeoff as
+before) — installs Hack Nerd Font Mono from Nerd Fonts' GitHub releases,
+confirmed no apt package exists for it (checked packages.ubuntu.com; the one
+partial match, `fonts-nerd-symbols`, is a different fallback-glyph package
+and only in a not-yet-released suite), so this is a vendor-install
+exception like Docker/herdr. Installed user-locally to
+`~/.local/share/fonts` (no sudo). The Mono variant specifically — Nerd
+Fonts ships `Hack Nerd Font`/`Mono`/`Propo` width variants, and terminals
+need the strictly-fixed-width one; confirmed the exact fontconfig family
+name (`Hack Nerd Font Mono`) by inspecting the actual font file with
+`fc-scan` rather than assuming it matched the display name. `kitty.conf`'s
+`font_family` was then verified end-to-end: installed the font for real,
+confirmed `fc-list` picked up all four styles, then confirmed kitty's own
+config loader resolved `font_family` to the installed font.

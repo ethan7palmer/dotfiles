@@ -1,0 +1,6 @@
+# herdr writes runtime state (logs, session data, sockets, plugin lock)
+# directly into ~/.config/herdr, since Stow symlinked the whole directory
+# as one unit — it didn't exist before the first stow run, so there was
+# nothing to fold into at the file level. Only config.toml is real config.
+/home/.config/herdr/*
+!/home/.config/herdr/config.toml
