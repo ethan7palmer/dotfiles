@@ -60,9 +60,12 @@ set_gsetting org.gnome.shell.extensions.dash-to-dock show-mounts "false"
 set_gsetting org.gnome.shell.extensions.dash-to-dock show-trash "false"
 set_gsetting org.gnome.shell.extensions.dash-to-dock show-running "false"
 
-# Pinned apps: just the three actually used day to day.
+# Dock icon size: smaller than Ubuntu's 48px default.
+set_gsetting org.gnome.shell.extensions.dash-to-dock dash-max-icon-size "32"
+
+# Pinned apps: just the two actually used day to day (no Files/Nautilus).
 set_gsetting org.gnome.shell favorite-apps \
-    "['google-chrome.desktop', 'kitty.desktop', 'org.gnome.Nautilus.desktop']"
+    "['google-chrome.desktop', 'kitty.desktop']"
 
 # Desktop icons (the ding extension): no "Home" icon cluttering the desktop.
 set_gsetting org.gnome.shell.extensions.ding show-home "false"
