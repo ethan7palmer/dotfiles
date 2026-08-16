@@ -2,11 +2,24 @@
     "theme": "dark-ansi",
     "statusLine": {
         "type": "command",
-        "command": "jq -r 'def fmtdur(s): if s >= 86400 then (s/86400|floor) as $d | ((s%86400)/3600|floor) as $h | \"\\($d)d \\($h)h\" else (s/3600|floor) as $h | ((s%3600)/60|floor) as $m | \"\\($h)h \\($m)m\" end; [ \"model: \\(.model.display_name)\", (if .effort.level then \"effort: \\(.effort.level)\" else empty end), (if .context_window.used_percentage then \"ctx: \\(.context_window.used_percentage|floor)% used\" else empty end), (if .rate_limits.five_hour.used_percentage then \"5h: \\(.rate_limits.five_hour.used_percentage|floor)% (resets in \\(fmtdur(.rate_limits.five_hour.resets_at - now)))\" else empty end), (if .rate_limits.seven_day.used_percentage then \"7d: \\(.rate_limits.seven_day.used_percentage|floor)% (resets in \\(fmtdur(.rate_limits.seven_day.resets_at - now)))\" else empty end) ] | join(\" | \")'",
+        "command": "jq -r 'def fmtdur(s): if s >= 86400 then (s/86400|floor) as $d | ((s%86400)/3600|floor) as $h | \"\\($d)d \\($h)h\" else (s/3600|floor) as $h | ((s%3600)/60|floor) as $m | \"\\($h)h \\($m)m\" end; [ (if .effort.level then \"\\(.model.display_name) (\\(.effort.level))\" else \"\\(.model.display_name)\" end), (if .context_window.used_percentage then \"ctx: \\(.context_window.used_percentage|floor)%\" else empty end), (if .rate_limits.five_hour.used_percentage then \"5h: \\(.rate_limits.five_hour.used_percentage|floor)% (\u21bb \\(fmtdur(.rate_limits.five_hour.resets_at - now)))\" else empty end), (if .rate_limits.seven_day.used_percentage then \"7d: \\(.rate_limits.seven_day.used_percentage|floor)% (\u21bb \\(fmtdur(.rate_limits.seven_day.resets_at - now)))\" else empty end) ] | join(\"|\")'",
         "refreshInterval": 60
     },
     "permissions": {
         "defaultMode": "auto"
     },
-    "hooks": {"SessionStart":[{"matcher":"*","hooks":[{"type":"command","command":"bash '/home/ethan/.claude/hooks/herdr-agent-state.sh' session","timeout":10}]}]}
+    "hooks": {
+        "SessionStart": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash '/home/ethan/.claude/hooks/herdr-agent-state.sh' session",
+                        "timeout": 10
+                    }
+                ]
+            }
+        ]
+    }
 }

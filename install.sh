@@ -38,6 +38,42 @@ section() {
 }
 
 # ---------------------------------------------------------------------------
+# Options
+# ---------------------------------------------------------------------------
+
+FORCE_IDENTITY_PROMPT=false
+
+for arg in "$@"; do
+    case "${arg}" in
+        -h | --help)
+            cat <<EOF
+${BOLD}Usage:${RESET} ./install.sh [OPTIONS]
+
+Provisions this machine: prereqs, Kitty, Hack Nerd Font, Chrome, zsh,
+Starship, git identity, an SSH key, vim, Docker, Claude Code, herdr, then
+symlinks home/ into \$HOME via GNU Stow. Safe to re-run any time.
+
+${BOLD}Options:${RESET}
+  --update-identity   Re-prompt for git user.name/user.email and the SSH
+                       key comment even if they're already set. Normally
+                       these are only asked for once and reused silently
+                       on every later run.
+  -h, --help           Show this help and exit.
+EOF
+            exit 0
+            ;;
+        --update-identity)
+            FORCE_IDENTITY_PROMPT=true
+            ;;
+        *)
+            echo "Unknown option: ${arg}" >&2
+            echo "Run './install.sh --help' for usage." >&2
+            exit 1
+            ;;
+    esac
+done
+
+# ---------------------------------------------------------------------------
 # Phase 1 — interactive pre-flight
 # ---------------------------------------------------------------------------
 
@@ -71,27 +107,46 @@ prompt_with_default() {
 }
 
 section "Git identity"
-echo "This is the author name and email attached to every commit made on"
-echo "this machine (visible in git log, GitHub commit history, blame, etc)."
-DOTFILES_GIT_NAME="$(prompt_with_default "Git user.name" "$(current_git_value user.name)")"
-echo
-echo "For commits to be linked to your GitHub profile (and count toward its"
-echo "contribution graph), this must be an email added to your GitHub"
-echo "account under Settings -> Emails — it doesn't have to be your primary"
-echo "one, and GitHub's private noreply address works too."
-DOTFILES_GIT_EMAIL="$(prompt_with_default "Git user.email" "$(current_git_value user.email)")"
+current_git_name="$(current_git_value user.name)"
+current_git_email="$(current_git_value user.email)"
+if [ -n "${current_git_name}" ] && [ -n "${current_git_email}" ] && [ "${FORCE_IDENTITY_PROMPT}" = false ]; then
+    echo "Using existing identity: ${current_git_name} <${current_git_email}>"
+    echo "(run with --update-identity to change)"
+    DOTFILES_GIT_NAME="${current_git_name}"
+    DOTFILES_GIT_EMAIL="${current_git_email}"
+else
+    echo "This is the author name and email attached to every commit made on"
+    echo "this machine (visible in git log, GitHub commit history, blame, etc)."
+    DOTFILES_GIT_NAME="$(prompt_with_default "Git user.name" "${current_git_name}")"
+    echo
+    echo "For commits to be linked to your GitHub profile (and count toward its"
+    echo "contribution graph), this must be an email added to your GitHub"
+    echo "account under Settings -> Emails — it doesn't have to be your primary"
+    echo "one, and GitHub's private noreply address works too."
+    DOTFILES_GIT_EMAIL="$(prompt_with_default "Git user.email" "${current_git_email}")"
+fi
 
 section "SSH key comment"
-echo "A label attached to the SSH key so it's identifiable wherever it's"
-echo "listed later — e.g. on GitHub's (or any other service's) SSH keys"
-echo "page, or in \`ssh-add -l\`."
 if [ -f "${SSH_KEY}.pub" ]; then
     current_comment="$(cut -d' ' -f3- "${SSH_KEY}.pub")"
-    echo "A key already exists at ${SSH_KEY}. Changing this only relabels it"
-    echo "(ssh-keygen -c) — it does NOT regenerate the key, which would"
-    echo "invalidate anything already trusting the old public key."
-    DOTFILES_SSH_COMMENT="$(prompt_with_default "SSH key comment" "${current_comment}")"
+    if [ "${FORCE_IDENTITY_PROMPT}" = false ]; then
+        echo "Using existing comment: ${current_comment}"
+        echo "(run with --update-identity to change — this only relabels the"
+        echo "key, it does NOT regenerate it)"
+        DOTFILES_SSH_COMMENT="${current_comment}"
+    else
+        echo "A label attached to the SSH key so it's identifiable wherever"
+        echo "it's listed later — e.g. on GitHub's (or any other service's)"
+        echo "SSH keys page, or in \`ssh-add -l\`."
+        echo "A key already exists at ${SSH_KEY}. Changing this only relabels it"
+        echo "(ssh-keygen -c) — it does NOT regenerate the key, which would"
+        echo "invalidate anything already trusting the old public key."
+        DOTFILES_SSH_COMMENT="$(prompt_with_default "SSH key comment" "${current_comment}")"
+    fi
 else
+    echo "A label attached to the SSH key so it's identifiable wherever it's"
+    echo "listed later — e.g. on GitHub's (or any other service's) SSH keys"
+    echo "page, or in \`ssh-add -l\`."
     echo "No SSH key yet — one will be generated at ${SSH_KEY}."
     DOTFILES_SSH_COMMENT="$(prompt_with_default "SSH key comment" "$(id -un)@$(hostname)")"
 fi
@@ -134,6 +189,10 @@ section "SSH key"
 echo "~/.ssh/id_ed25519 generated if missing; comment set to"
 echo "\"${DOTFILES_SSH_COMMENT}\"."
 
+section "vim (apt)"
+echo "No configuration — just a better default than vi for occasional use."
+echo "Neovim is a separate, not-yet-written stage."
+
 section "Claude Code (apt, via Anthropic's signed repository)"
 echo "Adds the Claude Code signing key to /etc/apt/keyrings, registers the"
 echo "stable channel in /etc/apt/sources.list.d, then installs \`claude-code\`."
@@ -157,13 +216,13 @@ echo "~/.gitconfig), backing up any real file already at that path first."
 echo
 
 reply=""
-read -r -p "Continue? [y/N] " reply || true
+read -r -p "Continue? [Y/n] " reply || true
 case "$(printf '%s' "$reply" | tr '[:upper:]' '[:lower:]')" in
-    y | yes) ;;
-    *)
+    n | no)
         echo "Aborted, no changes made."
         exit 0
         ;;
+    *) ;;
 esac
 
 # ---------------------------------------------------------------------------

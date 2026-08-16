@@ -13,12 +13,17 @@ cd ~/dotfiles
 ./install.sh
 ```
 
+Re-running `./install.sh` later (e.g. after pulling a new script) reuses your
+existing git identity and SSH key comment silently instead of re-asking —
+pass `--update-identity` to be prompted for them again, or `--help` for
+usage.
+
 ## Status
 
 This repo is **partially built**. Implemented so far: prereqs, Kitty + Hack
 Nerd Font Mono + Chrome, zsh + zinit + Starship, git identity + SSH key,
-Docker, Claude Code, herdr, and symlinking `home/` into `$HOME` via stow.
-Nothing here needs to be installed by hand — `install.sh` installs
+vim, Docker, Claude Code, herdr, and symlinking `home/` into `$HOME` via
+stow. Nothing here needs to be installed by hand — `install.sh` installs
 everything listed below itself.
 
 Every script is one app/package, run in numeric order, counting up from 0.
@@ -35,18 +40,19 @@ Implemented:
 | `scripts/05-starship.sh`       | Starship prompt (apt), wired into `.bashrc`/`.zshrc` |
 | `scripts/06-git-identity.sh`   | `~/.gitconfig.local` user.name/user.email (from `install.sh` pre-flight) |
 | `scripts/07-ssh-key.sh`        | SSH keygen / comment relabel                         |
-| `scripts/09-docker.sh`         | Docker CE (official apt repo), adds `${USER}` to the `docker` group |
-| `scripts/10-claude-code.sh`    | Claude Code via Anthropic's signed apt repository    |
-| `scripts/11-herdr.sh`          | herdr (official installer) + `herdr integration install claude` |
-| `scripts/13-stow-symlinks.sh`  | Symlinks `home/` into `$HOME` via `stow`, backing up real files first |
+| `scripts/08-vim.sh`            | vim (apt), no configuration                          |
+| `scripts/10-docker.sh`         | Docker CE (official apt repo), adds `${USER}` to the `docker` group |
+| `scripts/11-claude-code.sh`    | Claude Code via Anthropic's signed apt repository    |
+| `scripts/12-herdr.sh`          | herdr (official installer) + `herdr integration install claude` |
+| `scripts/14-stow-symlinks.sh`  | Symlinks `home/` into `$HOME` via `stow`, backing up real files first |
 
 `install.sh`'s pre-flight prompts for git `user.name` / `user.email` / SSH
 key comment (re-run-aware: shows current values as defaults) are also done.
 
 Still to write:
 
-- `scripts/08-neovim.sh` — neovim via apt
-- `scripts/12-gnome-settings.sh` — `dconf load / < gnome/dconf-settings.ini`
+- `scripts/09-neovim.sh` — neovim via apt
+- `scripts/13-gnome-settings.sh` — `dconf load / < gnome/dconf-settings.ini`
 - `home/.config/nvim/init.lua`
 - `gnome/dconf-settings.ini` — placeholder, captured on the target machine
 
@@ -89,7 +95,7 @@ that whole directory as a unit the first time it didn't yet exist.
 means adding a numbered file — no edit to `install.sh` required.
 
 `home/` is a single GNU Stow package rather than one package per app —
-`scripts/13-stow-symlinks.sh` runs `stow -t "$HOME" home` once. Stow folds
+`scripts/14-stow-symlinks.sh` runs `stow -t "$HOME" home` once. Stow folds
 into existing real directories (like `~/.config`, which Ubuntu creates by
 default) and symlinks individual entries inside them, so e.g. `~/.config/nvim`
 becomes a symlink straight to `home/.config/nvim` without turning the whole

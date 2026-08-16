@@ -371,7 +371,7 @@ Shipped:
 
 - No new numbered script — bash ships with Ubuntu already, and there's no
   package to install or per-machine value to prompt for. This is pure Stow
-  content, symlinked by the existing `scripts/13-stow-symlinks.sh`.
+  content, symlinked by the existing `scripts/14-stow-symlinks.sh`.
 - `home/.bashrc` — kept nearly identical to the machine's actual stock
   `~/.bashrc` (same history settings, color prompt, bash-completion
   sourcing, comments — diffed against the live file to confirm), with two
@@ -436,3 +436,14 @@ name (`Hack Nerd Font Mono`) by inspecting the actual font file with
 `font_family` was then verified end-to-end: installed the font for real,
 confirmed `fc-list` picked up all four styles, then confirmed kitty's own
 config loader resolved `font_family` to the installed font.
+
+## Addendum: vim (implemented)
+
+Not in the original spec above. Plain `vim` via apt, zero configuration —
+explicitly requested as a stopgap over `vi` for occasional use, not a
+daily-driver setup; Neovim (the `EDITOR` this repo actually configures
+everywhere — `.bashrc`, `.zshrc`, git's `core.editor`) remains a separate,
+not-yet-written stage. Added as `scripts/08-vim.sh`, right after the SSH
+key stage and before Neovim's still-reserved slot, so the two editors sit
+next to each other — everything from `scripts/10-docker.sh` onward shifted
+up by one, same renumbering tradeoff as every prior insertion.

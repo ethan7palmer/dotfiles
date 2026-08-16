@@ -1,6 +1,22 @@
+onboarding = false
 # herdr works fine with no config file at all — add settings here as you
 # want to customize keybindings, theme, sidebar layout, notifications, etc.
 # Full reference: https://herdr.dev/docs/configuration/
 
 [ui]
 agent_panel_sort = "spaces"
+
+[keys]
+# chs:start
+prefix           = "ctrl+b"
+focus_pane_left  = "prefix+left"
+focus_pane_down  = "prefix+down"
+focus_pane_up    = "prefix+up"
+focus_pane_right = "prefix+right"
+close_pane       = "prefix+x"
+split_horizontal = "prefix+h"
+split_vertical   = "prefix+v"
+new_tab          = "prefix+t"
+close_tab        = "prefix+c"
+goto             = "prefix+g"
+# chs:end
