@@ -79,6 +79,51 @@ Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
 already-installed package.
 
+## Where things come from
+
+Everything this repo installs, grouped by source and how much scrutiny it
+warrants — useful if you need to get this approved for a work machine.
+
+**Ubuntu's own apt repos** (baseline OS trust): curl, wget, stow, gnupg,
+ca-certificates, software-properties-common, jq, ripgrep, fd-find, kitty,
+zsh, starship, vim, neovim.
+
+**Official vendor apt repos** (GPG-signed, each vendor's own documented
+setup — standard practice, not a special exception):
+- Google Chrome — `dl.google.com`
+- Docker CE + cli + containerd.io + buildx + compose — `download.docker.com`
+- Claude Code — `downloads.claude.ai`, Anthropic's own repo
+
+**Direct downloads / vendor scripts** (no apt package exists):
+- Hack Nerd Font Mono — a font tarball from `ryanoasis/nerd-fonts`'s GitHub
+  releases. Static files, no code execution.
+- Claude Code, fallback only if the apt install fails — Anthropic's own
+  official `curl | bash` installer.
+- herdr — `curl | sh` from `herdr.dev`. No `sudo`, installs only to
+  `~/.local/bin`, downloads a prebuilt binary and verifies its SHA256
+  against a manifest fetched from the same domain (protects against
+  corruption/CDN issues, not against `herdr.dev` itself being compromised).
+
+**Git-cloned source** (code that runs inside your shell/editor):
+- zsh: [`zdharma-continuum/zinit`](https://github.com/zdharma-continuum/zinit)
+  (plugin manager) → `zsh-users/zsh-autosuggestions`,
+  `zsh-users/zsh-syntax-highlighting`. Not commit-pinned — tracks branch
+  heads.
+- Neovim: [`folke/lazy.nvim`](https://github.com/folke/lazy.nvim) (pinned to
+  its `stable` branch) → `rose-pine/neovim`, `folke/which-key.nvim`,
+  `stevearc/oil.nvim`, `folke/snacks.nvim`, `NeogitOrg/neogit`,
+  `nvim-lua/plenary.nvim`, `sindrets/diffview.nvim`, `lewis6991/gitsigns.nvim`.
+  All pinned to exact commits in `home/.config/nvim/lazy-lock.json`.
+
+**Worth flagging on its own: herdr.** It's the newest and least-established
+project of everything listed here, runs as a persistent background server,
+and hooks into Claude Code session state via a `SessionStart` hook. The
+installer itself is well-behaved (no `sudo`, checksum-verified, user-space
+only), but its runtime behavior — what it does with session data, whether
+it phones home — hasn't been independently audited as part of this repo.
+Worth a look before running this on a company machine, separately from
+everything else above.
+
 ## Repository layout
 
 ```
