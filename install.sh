@@ -158,9 +158,10 @@ echo
 echo "${BOLD}This will install the following on this machine:${RESET}"
 
 section "Prerequisites (apt)"
-echo "curl, wget, stow, gnupg, ca-certificates, software-properties-common, jq"
-echo "— needed by the remaining scripts, to add third-party apt repos, and"
-echo "(jq) to parse JSON in the Claude Code status line."
+echo "curl, wget, stow, gnupg, ca-certificates, software-properties-common, jq,"
+echo "ripgrep, fd-find — needed by the remaining scripts, to add third-party"
+echo "apt repos, (jq) to parse JSON in the Claude Code status line, and"
+echo "(ripgrep/fd, symlinked as fd) by Neovim's fuzzy pickers."
 
 section "Kitty (apt)"
 echo "Terminal emulator."
@@ -191,7 +192,12 @@ echo "\"${DOTFILES_SSH_COMMENT}\"."
 
 section "vim (apt)"
 echo "No configuration — just a better default than vi for occasional use."
-echo "Neovim is a separate, not-yet-written stage."
+
+section "Neovim (apt) + config"
+echo "lazy.nvim-managed: which-key, oil.nvim + snacks.nvim (fuzzy picker,"
+echo "needs ripgrep for grep), neogit + gitsigns, rose-pine (moon) theme."
+echo "Plugins install themselves the first time nvim runs (needs network"
+echo "once)."
 
 section "Claude Code (apt, via Anthropic's signed repository)"
 echo "Adds the Claude Code signing key to /etc/apt/keyrings, registers the"
@@ -204,15 +210,16 @@ echo "channel in /etc/apt/sources.list.d, then installs docker-ce docker-ce-cli"
 echo "containerd.io docker-buildx-plugin docker-compose-plugin. Adds"
 echo "${USER} to the docker group if not already a member."
 
-section "herdr (official installer)"
-echo "Installs to ~/.local/bin via curl -fsSL https://herdr.dev/install.sh | sh,"
-echo "then runs \`herdr integration install claude\` so herdr's sidebar gets"
-echo "native state-awareness for Claude Code sessions (this updates"
-echo "~/.claude/settings.json with hook entries)."
-
 section "Stow symlinks"
 echo "Everything under home/ symlinked into \$HOME (e.g. home/.gitconfig ->"
 echo "~/.gitconfig), backing up any real file already at that path first."
+
+section "herdr (official installer)"
+echo "Installs to ~/.local/bin via curl -fsSL https://herdr.dev/install.sh | sh,"
+echo "then runs \`herdr integration install claude\` so herdr's sidebar gets"
+echo "native state-awareness for Claude Code sessions. Runs after the stow"
+echo "step on purpose, so it always writes into the already-symlinked (and"
+echo "so machine-portable) ~/.claude/settings.json last."
 echo
 
 reply=""

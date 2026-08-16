@@ -17,6 +17,21 @@ bindkey -e
 setopt SH_WORD_SPLIT
 unsetopt NOMATCH
 
+# Ctrl-Left/Right (jump a word, like bash/readline) aren't bound by zsh's
+# emacs keymap out of the box - Kitty sends the standard xterm sequence
+# (confirmed: `bindkey` showed plain Left/Right bound but not these), so
+# with no binding zsh just inserts the unrecognized tail as literal text
+# (the ";5D" this was added to fix).
+bindkey '^[[1;5C' forward-word
+bindkey '^[[1;5D' backward-word
+
+# Alt+Backspace (backward-kill-word) treats $WORDCHARS as part of a "word"
+# rather than a boundary, and zsh's default $WORDCHARS includes "/" - so it
+# was deleting a whole path like /path/to/file in one go instead of stopping
+# at each "/", like bash/readline do. Dropping "/" from the default set (the
+# rest unchanged) makes it stop at path separators: /path/to/file -> /path/to/.
+WORDCHARS=${WORDCHARS//\//}
+
 # A zsh-native prompt (bash's PS1 escapes like \u/\h/\[...\] aren't
 # meaningful here, so leaving this unset means anything that ever sets PS1
 # — including accidentally sourcing ~/.bashrc from inside zsh — sticks until

@@ -371,7 +371,7 @@ Shipped:
 
 - No new numbered script — bash ships with Ubuntu already, and there's no
   package to install or per-machine value to prompt for. This is pure Stow
-  content, symlinked by the existing `scripts/14-stow-symlinks.sh`.
+  content, symlinked by the existing `scripts/12-stow-symlinks.sh`.
 - `home/.bashrc` — kept nearly identical to the machine's actual stock
   `~/.bashrc` (same history settings, color prompt, bash-completion
   sourcing, comments — diffed against the live file to confirm), with two
@@ -447,3 +447,74 @@ not-yet-written stage. Added as `scripts/08-vim.sh`, right after the SSH
 key stage and before Neovim's still-reserved slot, so the two editors sit
 next to each other — everything from `scripts/10-docker.sh` onward shifted
 up by one, same renumbering tradeoff as every prior insertion.
+
+## Addendum: Neovim install + config (implemented)
+
+`scripts/09-neovim.sh` (plain `apt install neovim`) landed first, config
+deliberately left unwritten per explicit instruction, pending direction.
+The config that followed directly contradicts the original PROMPT.md spec
+above ("core built-in settings and keymaps only... no plugin manager, no
+plugins") — that default was for *inventing* opinions un-asked; this is
+the opposite case, importing the user's own already-used config from a
+separate private repo (`dotfiles-old` on GitHub, a home-manager/Nix setup)
+verbatim rather than guessing at preferences.
+
+Copied byte-for-byte via `git clone`: `init.lua`, `lazy-lock.json` (pins
+every plugin to the exact commit the old machine ran), and
+`lua/{vim_config,plugin,keys}.lua` plus `lua/plugins/{ui,navigation,git,
+colorscheme}.lua` (which-key, oil.nvim + snacks.nvim, neogit + gitsigns,
+rose-pine "moon"). Confirmed identical to the source with `diff` file by
+file. Exactly one deliberate edit: a comment in `colorscheme.lua` referenced
+"WezTerm's own window_background_opacity" — the old machine's terminal —
+updated to say Kitty's `background_opacity` instead, since that's what
+this repo actually configures; the transparency logic itself needed no
+change; both are just "let the terminal's own opacity show through."
+
+Verified far beyond "the files parse": ran the actual `nvim` binary
+headless against the copied config with `XDG_CONFIG_HOME` pointed at it.
+lazy.nvim bootstrapped for real, cloned every plugin, and checked each out
+at its `lazy-lock.json`-pinned commit with zero errors (`exit=0`).
+Confirmed at runtime after that: `vim.g.colors_name` reports `rose-pine`,
+and `vim.fn.maparg('<Esc>', 'n')` / `maparg('<space>e', 'n')` show the
+`keys.lua` and `navigation.lua` keymaps actually registered.
+
+Resolved: the old repo's `home.nix` installed `ripgrep` and `fd` as system
+packages specifically to support this config (`Snacks.picker.grep()` needs
+`ripgrep`; the file picker wants `fd` for speed) — both added to
+`scripts/00-prereqs.sh` (apt packages `ripgrep`, `fd-find`). Ubuntu's
+`fd-find` installs its binary as `fdfind`, not `fd` (name clash with an
+unrelated existing package, confirmed by checking the package's actual
+file listing rather than assuming) — the script symlinks
+`/usr/local/bin/fd` to it, idempotently, on every run.
+
+## Addendum: portability bug — herdr's hooks entry (fixed)
+
+Found while auditing the whole tracked repo for anything machine-specific
+(user's explicit ask, prompted by noticing a hardcoded home directory in
+`home/.claude/settings.json`) — confirmed via `git grep` that this was the
+*only* hardcoded `/home/<user>/...` path anywhere in tracked files,
+including the imported Neovim config, but it was a real bug, not just a
+cosmetic one:
+
+`herdr integration install claude` (in what was then `scripts/12-herdr.sh`)
+writes a machine-specific absolute path directly into
+`~/.claude/settings.json`. That script ran *before*
+`scripts/14-stow-symlinks.sh`. On a fresh machine: herdr would write a
+correct entry into the not-yet-symlinked file first, then stow would
+immediately back that up and replace it with the *tracked* copy — which,
+once committed from this machine, permanently contained
+`/home/ethan/...`. Worse, `scripts/12-herdr.sh`'s own idempotency guard
+checks only for the hook *script* file's existence (which stow's clobber
+doesn't touch), so it would never re-run to repair the broken
+`settings.json` it had just caused — permanently silent breakage on every
+machine except this one, with no self-healing path.
+
+Fixed by swapping the two scripts' numbers (stow is now
+`scripts/12-stow-symlinks.sh`, herdr is now `scripts/14-herdr.sh`) so
+herdr always writes into the already-symlinked, tracked file last — and by
+stripping the `hooks` key from what's actually committed in
+`home/.claude/settings.json`. The live file will still gain a `hooks` key
+locally every time `herdr integration install claude` runs (confirmed:
+re-running it against the now-hooks-less tracked file regenerates a
+correct entry) — that's expected, self-healing, per-machine drift now,
+not a hardcoded value baked into the shared baseline.

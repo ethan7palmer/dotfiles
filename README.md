@@ -22,9 +22,9 @@ usage.
 
 This repo is **partially built**. Implemented so far: prereqs, Kitty + Hack
 Nerd Font Mono + Chrome, zsh + zinit + Starship, git identity + SSH key,
-vim, Docker, Claude Code, herdr, and symlinking `home/` into `$HOME` via
-stow. Nothing here needs to be installed by hand — `install.sh` installs
-everything listed below itself.
+vim, Neovim + lazy.nvim config, Docker, Claude Code, herdr, and symlinking
+`home/` into `$HOME` via stow. Nothing here needs to be installed by hand —
+`install.sh` installs everything listed below itself.
 
 Every script is one app/package, run in numeric order, counting up from 0.
 
@@ -32,7 +32,7 @@ Implemented:
 
 | Script                        | Installs                                              |
 | ------------------------------ | ----------------------------------------------------- |
-| `scripts/00-prereqs.sh`        | curl, wget, stow, gnupg, ca-certificates, software-properties-common, jq (via apt) |
+| `scripts/00-prereqs.sh`        | curl, wget, stow, gnupg, ca-certificates, software-properties-common, jq, ripgrep, fd-find (via apt; symlinks `fdfind` to `fd`) |
 | `scripts/01-kitty.sh`          | Kitty terminal emulator (apt)                        |
 | `scripts/02-nerd-font.sh`      | Hack Nerd Font Mono (official GitHub releases — no apt package exists) |
 | `scripts/03-chrome.sh`         | Google Chrome (official apt repo)                    |
@@ -41,19 +41,18 @@ Implemented:
 | `scripts/06-git-identity.sh`   | `~/.gitconfig.local` user.name/user.email (from `install.sh` pre-flight) |
 | `scripts/07-ssh-key.sh`        | SSH keygen / comment relabel                         |
 | `scripts/08-vim.sh`            | vim (apt), no configuration                          |
+| `scripts/09-neovim.sh`         | Neovim (apt); config: lazy.nvim, which-key, oil.nvim + snacks.nvim, neogit + gitsigns, rose-pine (moon) |
 | `scripts/10-docker.sh`         | Docker CE (official apt repo), adds `${USER}` to the `docker` group |
 | `scripts/11-claude-code.sh`    | Claude Code via Anthropic's signed apt repository    |
-| `scripts/12-herdr.sh`          | herdr (official installer) + `herdr integration install claude` |
-| `scripts/14-stow-symlinks.sh`  | Symlinks `home/` into `$HOME` via `stow`, backing up real files first |
+| `scripts/12-stow-symlinks.sh`  | Symlinks `home/` into `$HOME` via `stow`, backing up real files first |
+| `scripts/14-herdr.sh`          | herdr (official installer) + `herdr integration install claude` — runs *after* stow on purpose (see below) |
 
 `install.sh`'s pre-flight prompts for git `user.name` / `user.email` / SSH
 key comment (re-run-aware: shows current values as defaults) are also done.
 
 Still to write:
 
-- `scripts/09-neovim.sh` — neovim via apt
 - `scripts/13-gnome-settings.sh` — `dconf load / < gnome/dconf-settings.ini`
-- `home/.config/nvim/init.lua`
 - `gnome/dconf-settings.ini` — placeholder, captured on the target machine
 
 ## Layout
@@ -66,7 +65,18 @@ dotfiles/
 ├── scripts/            # numbered, idempotent, run in numeric order
 └── home/               # one stow package, mirrors $HOME directly, e.g.
     ├── .config/
-    │   ├── nvim/init.lua
+    │   ├── nvim/
+    │   │   ├── init.lua
+    │   │   ├── lazy-lock.json
+    │   │   └── lua/
+    │   │       ├── vim_config.lua
+    │   │       ├── plugin.lua        # bootstraps lazy.nvim
+    │   │       ├── keys.lua
+    │   │       └── plugins/
+    │   │           ├── colorscheme.lua   # rose-pine, moon variant
+    │   │           ├── git.lua           # neogit + gitsigns
+    │   │           ├── navigation.lua    # oil.nvim + snacks.nvim
+    │   │           └── ui.lua            # which-key.nvim
     │   ├── kitty/
     │   │   ├── kitty.conf
     │   │   └── theme.conf
@@ -95,12 +105,26 @@ that whole directory as a unit the first time it didn't yet exist.
 means adding a numbered file — no edit to `install.sh` required.
 
 `home/` is a single GNU Stow package rather than one package per app —
-`scripts/14-stow-symlinks.sh` runs `stow -t "$HOME" home` once. Stow folds
+`scripts/12-stow-symlinks.sh` runs `stow -t "$HOME" home` once. Stow folds
 into existing real directories (like `~/.config`, which Ubuntu creates by
 default) and symlinks individual entries inside them, so e.g. `~/.config/nvim`
 becomes a symlink straight to `home/.config/nvim` without turning the whole
 of `~/.config` into a symlink. To add a new stowed app, add its files under
 `home/` in the same relative path they belong at under `$HOME`.
+
+**Why herdr (14) runs after stow (12):** `herdr integration install claude`
+writes directly into `~/.claude/settings.json` — a machine-specific absolute
+path (`~/.claude/hooks/herdr-agent-state.sh`) baked in for whoever's home
+directory it runs against. Since `~/.claude/settings.json` only becomes a
+symlink into this tracked repo *after* stow runs, running herdr after stow
+means that write always lands in the already-symlinked (and thus portable
+across re-runs) file, rather than in a plain local file that stow would
+later clobber with the tracked copy. `home/.claude/settings.json` itself is
+deliberately committed *without* a `hooks` key — herdr regenerates it
+locally on every machine that runs this repo, so the version you see live
+in `~/.claude/settings.json` will legitimately differ from git's tracked
+copy after `herdr integration install claude` runs. That's expected drift,
+not something to "fix" by committing it back.
 
 ## Conventions
 
