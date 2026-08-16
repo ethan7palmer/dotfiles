@@ -19,4 +19,5 @@ split_vertical   = "prefix+v"
 new_tab          = "prefix+t"
 close_tab        = "prefix+c"
 goto             = "prefix+g"
+detach           = "prefix+q"
 # chs:end
