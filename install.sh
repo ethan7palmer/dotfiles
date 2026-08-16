@@ -214,6 +214,14 @@ section "Stow symlinks"
 echo "Everything under home/ symlinked into \$HOME (e.g. home/.gitconfig ->"
 echo "~/.gitconfig), backing up any real file already at that path first."
 
+section "GNOME/Ubuntu Dock settings (gsettings, individual keys)"
+echo "Chrome as default browser, 24-hour clock, mouse with no acceleration,"
+echo "dock moved to the bottom/shrunk/auto-hidden showing only Chrome/Kitty/"
+echo "Files (no drives, trash, or unpinned running apps), no Home icon on"
+echo "the desktop, background set to this repo's wallpaper.jpg. Each setting"
+echo "is an individual, reversible gsettings call - never a wholesale dconf"
+echo "load, which can silently break the shell."
+
 section "herdr (official installer)"
 echo "Installs to ~/.local/bin via curl -fsSL https://herdr.dev/install.sh | sh,"
 echo "then runs \`herdr integration install claude\` so herdr's sidebar gets"
@@ -321,8 +329,4 @@ if [ -f "${SSH_KEY}.pub" ] && [ "${origin_url#https://github.com/}" != "${origin
     echo
     echo "  git remote set-url origin ${ssh_url}"
 fi
-
-section "Status"
-echo "The rest of this repo is not built yet. See \"Status\" in README.md"
-echo "for the scripts still to be written."
 echo
