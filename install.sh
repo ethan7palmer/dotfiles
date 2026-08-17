@@ -318,11 +318,12 @@ fi
 if ! skipped gnome-settings; then
     section "GNOME/Ubuntu Dock settings (gsettings, individual keys)"
     echo "Chrome as default browser, 24-hour clock, mouse with no acceleration,"
-    echo "dock moved to the bottom/shrunk/auto-hidden showing only Chrome/Kitty/"
-    echo "Files (no drives, trash, or unpinned running apps), no Home icon on"
-    echo "the desktop, background set to this repo's wallpaper.jpg. Each setting"
-    echo "is an individual, reversible gsettings call - never a wholesale dconf"
-    echo "load, which can silently break the shell."
+    echo "screen never blanks from inactivity, dock moved to the"
+    echo "bottom/shrunk/auto-hidden showing only Chrome/Kitty/Files (no drives,"
+    echo "trash, or unpinned running apps), no Home icon on the desktop,"
+    echo "background set to this repo's wallpaper.jpg. Each setting is an"
+    echo "individual, reversible gsettings call - never a wholesale dconf load,"
+    echo "which can silently break the shell."
 fi
 
 if ! skipped herdr; then

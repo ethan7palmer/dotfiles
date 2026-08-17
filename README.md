@@ -56,8 +56,8 @@ sidebar/manager) wired up with native Claude Code session awareness.
 **Desktop (GNOME)** — dock moved to the bottom, shrunk to fit its icons,
 auto-hidden, showing only Chrome/Kitty (no drives, trash, unpinned running
 apps, or Files), 32px dock icons, no Home icon cluttering the desktop, mouse
-speed/acceleration tuned, 24-hour clock, and this repo's own wallpaper set
-as the background.
+speed/acceleration tuned, 24-hour clock, screen never blanks from
+inactivity, and this repo's own wallpaper set as the background.
 
 **Voice dictation** — Handy, a local-only speech-to-text app (no audio ever
 leaves the machine), plus `ydotool` (the text-injection backend it needs

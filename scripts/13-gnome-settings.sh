@@ -40,11 +40,17 @@ fi
 # 24-hour clock.
 set_gsetting org.gnome.desktop.interface clock-format "'24h'"
 
+# Never blank the screen from inactivity (Settings -> Power -> Screen Blank
+# -> Never). idle-delay is a uint32, and gsettings get/set both need that
+# "uint32" type prefix on the literal for it to string-match on later runs -
+# a bare "0" would set fine but never equal the "uint32 0" that get returns.
+set_gsetting org.gnome.desktop.session idle-delay "uint32 0"
+
 # Mouse: slightly slower than GNOME's default, no acceleration curve (flat =
 # constant scaling derived from the speed value below, rather than
 # speed-dependent acceleration).
 set_gsetting org.gnome.desktop.peripherals.mouse accel-profile "'flat'"
-set_gsetting org.gnome.desktop.peripherals.mouse speed "-0.3"
+set_gsetting org.gnome.desktop.peripherals.mouse speed "-0.4"
 
 # Ubuntu Dock: bottom of the screen, shrunk to fit its icons (not stretched
 # the full width) rather than centering it manually, auto-hidden rather than
