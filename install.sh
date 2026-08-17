@@ -41,7 +41,25 @@ section() {
 # Options
 # ---------------------------------------------------------------------------
 
+# Each scripts/NN-name.sh maps to a stage id of just "name" (numeric prefix
+# stripped) — that id is what --skip takes and what the interactive picker
+# lists.
+stage_id() {
+    basename "$1" .sh | sed -E 's/^[0-9]+-//'
+}
+
+all_stage_ids() {
+    local script
+    for script in scripts/*.sh; do
+        stage_id "${script}"
+    done
+}
+
 FORCE_IDENTITY_PROMPT=false
+INTERACTIVE_SKIP=false
+declare -A SKIP=()
+
+skipped() { [ "${SKIP[$1]:-false}" = true ]; }
 
 for arg in "$@"; do
     case "${arg}" in
@@ -50,20 +68,41 @@ for arg in "$@"; do
 ${BOLD}Usage:${RESET} ./install.sh [OPTIONS]
 
 Provisions this machine: prereqs, Kitty, Hack Nerd Font, Chrome, zsh,
-Starship, git identity, an SSH key, vim, Docker, Claude Code, herdr, then
-symlinks home/ into \$HOME via GNU Stow. Safe to re-run any time.
+Starship, git identity, an SSH key, vim, Docker, Claude Code, herdr, Handy,
+then symlinks home/ into \$HOME via GNU Stow. Safe to re-run any time.
 
 ${BOLD}Options:${RESET}
   --update-identity   Re-prompt for git user.name/user.email and the SSH
                        key comment even if they're already set. Normally
                        these are only asked for once and reused silently
                        on every later run.
+  --skip=STAGE,...    Skip these stages (comma-separated). Stage ids are
+                       the scripts/ filenames with the numeric prefix
+                       stripped, e.g. handy, docker, gnome-settings.
+                       Current stages: $(all_stage_ids | paste -sd, -)
+  --skip               Same, but prompts with a numbered checklist instead
+                       of taking stage ids on the command line.
   -h, --help           Show this help and exit.
 EOF
             exit 0
             ;;
         --update-identity)
             FORCE_IDENTITY_PROMPT=true
+            ;;
+        --skip=*)
+            raw="${arg#--skip=}"
+            valid="$(all_stage_ids)"
+            for id in ${raw//,/ }; do
+                if ! grep -qx "${id}" <<<"${valid}"; then
+                    echo "Unknown stage for --skip: ${id}" >&2
+                    echo "Valid stages: $(echo "${valid}" | paste -sd, -)" >&2
+                    exit 1
+                fi
+                SKIP["${id}"]=true
+            done
+            ;;
+        --skip)
+            INTERACTIVE_SKIP=true
             ;;
         *)
             echo "Unknown option: ${arg}" >&2
@@ -106,141 +145,209 @@ prompt_with_default() {
     done
 }
 
-section "Git identity"
-current_git_name="$(current_git_value user.name)"
-current_git_email="$(current_git_value user.email)"
-if [ -n "${current_git_name}" ] && [ -n "${current_git_email}" ] && [ "${FORCE_IDENTITY_PROMPT}" = false ]; then
-    echo "Using existing identity: ${current_git_name} <${current_git_email}>"
-    echo "(run with --update-identity to change)"
-    DOTFILES_GIT_NAME="${current_git_name}"
-    DOTFILES_GIT_EMAIL="${current_git_email}"
-else
-    echo "This is the author name and email attached to every commit made on"
-    echo "this machine (visible in git log, GitHub commit history, blame, etc)."
-    DOTFILES_GIT_NAME="$(prompt_with_default "Git user.name" "${current_git_name}")"
-    echo
-    echo "For commits to be linked to your GitHub profile (and count toward its"
-    echo "contribution graph), this must be an email added to your GitHub"
-    echo "account under Settings -> Emails — it doesn't have to be your primary"
-    echo "one, and GitHub's private noreply address works too."
-    DOTFILES_GIT_EMAIL="$(prompt_with_default "Git user.email" "${current_git_email}")"
+DOTFILES_GIT_NAME=""
+DOTFILES_GIT_EMAIL=""
+if ! skipped git-identity; then
+    section "Git identity"
+    current_git_name="$(current_git_value user.name)"
+    current_git_email="$(current_git_value user.email)"
+    if [ -n "${current_git_name}" ] && [ -n "${current_git_email}" ] && [ "${FORCE_IDENTITY_PROMPT}" = false ]; then
+        echo "Using existing identity: ${current_git_name} <${current_git_email}>"
+        echo "(run with --update-identity to change)"
+        DOTFILES_GIT_NAME="${current_git_name}"
+        DOTFILES_GIT_EMAIL="${current_git_email}"
+    else
+        echo "This is the author name and email attached to every commit made on"
+        echo "this machine (visible in git log, GitHub commit history, blame, etc)."
+        DOTFILES_GIT_NAME="$(prompt_with_default "Git user.name" "${current_git_name}")"
+        echo
+        echo "For commits to be linked to your GitHub profile (and count toward its"
+        echo "contribution graph), this must be an email added to your GitHub"
+        echo "account under Settings -> Emails — it doesn't have to be your primary"
+        echo "one, and GitHub's private noreply address works too."
+        DOTFILES_GIT_EMAIL="$(prompt_with_default "Git user.email" "${current_git_email}")"
+    fi
 fi
 
-section "SSH key comment"
-if [ -f "${SSH_KEY}.pub" ]; then
-    current_comment="$(cut -d' ' -f3- "${SSH_KEY}.pub")"
-    if [ "${FORCE_IDENTITY_PROMPT}" = false ]; then
-        echo "Using existing comment: ${current_comment}"
-        echo "(run with --update-identity to change — this only relabels the"
-        echo "key, it does NOT regenerate it)"
-        DOTFILES_SSH_COMMENT="${current_comment}"
+DOTFILES_SSH_COMMENT=""
+if ! skipped ssh-key; then
+    section "SSH key comment"
+    if [ -f "${SSH_KEY}.pub" ]; then
+        current_comment="$(cut -d' ' -f3- "${SSH_KEY}.pub")"
+        if [ "${FORCE_IDENTITY_PROMPT}" = false ]; then
+            echo "Using existing comment: ${current_comment}"
+            echo "(run with --update-identity to change — this only relabels the"
+            echo "key, it does NOT regenerate it)"
+            DOTFILES_SSH_COMMENT="${current_comment}"
+        else
+            echo "A label attached to the SSH key so it's identifiable wherever"
+            echo "it's listed later — e.g. on GitHub's (or any other service's)"
+            echo "SSH keys page, or in \`ssh-add -l\`."
+            echo "A key already exists at ${SSH_KEY}. Changing this only relabels it"
+            echo "(ssh-keygen -c) — it does NOT regenerate the key, which would"
+            echo "invalidate anything already trusting the old public key."
+            DOTFILES_SSH_COMMENT="$(prompt_with_default "SSH key comment" "${current_comment}")"
+        fi
     else
-        echo "A label attached to the SSH key so it's identifiable wherever"
-        echo "it's listed later — e.g. on GitHub's (or any other service's)"
-        echo "SSH keys page, or in \`ssh-add -l\`."
-        echo "A key already exists at ${SSH_KEY}. Changing this only relabels it"
-        echo "(ssh-keygen -c) — it does NOT regenerate the key, which would"
-        echo "invalidate anything already trusting the old public key."
-        DOTFILES_SSH_COMMENT="$(prompt_with_default "SSH key comment" "${current_comment}")"
+        echo "A label attached to the SSH key so it's identifiable wherever it's"
+        echo "listed later — e.g. on GitHub's (or any other service's) SSH keys"
+        echo "page, or in \`ssh-add -l\`."
+        echo "No SSH key yet — one will be generated at ${SSH_KEY}."
+        DOTFILES_SSH_COMMENT="$(prompt_with_default "SSH key comment" "$(id -un)@$(hostname)")"
     fi
-else
-    echo "A label attached to the SSH key so it's identifiable wherever it's"
-    echo "listed later — e.g. on GitHub's (or any other service's) SSH keys"
-    echo "page, or in \`ssh-add -l\`."
-    echo "No SSH key yet — one will be generated at ${SSH_KEY}."
-    DOTFILES_SSH_COMMENT="$(prompt_with_default "SSH key comment" "$(id -un)@$(hostname)")"
 fi
 echo
 
 export DOTFILES_GIT_NAME DOTFILES_GIT_EMAIL DOTFILES_SSH_COMMENT
 
+if [ "${INTERACTIVE_SKIP}" = true ]; then
+    section "Stages to skip"
+    echo "Enter the numbers of any stages to skip (space or comma separated),"
+    echo "or press Enter to skip none:"
+    stage_list=()
+    i=1
+    for id in $(all_stage_ids); do
+        stage_list+=("${id}")
+        echo "  ${i}) ${id}"
+        i=$((i + 1))
+    done
+    skip_reply=""
+    read -r -p "> " skip_reply || true
+    for token in ${skip_reply//,/ }; do
+        if [[ "${token}" =~ ^[0-9]+$ ]] && [ "${token}" -ge 1 ] && [ "${token}" -le "${#stage_list[@]}" ]; then
+            SKIP["${stage_list[$((token - 1))]}"]=true
+        else
+            echo "Ignoring unrecognized entry: ${token}" >&2
+        fi
+    done
+fi
+
 echo
 echo "${BOLD}This will install the following on this machine:${RESET}"
 
-section "Prerequisites (apt)"
-echo "curl, wget, stow, gnupg, ca-certificates, software-properties-common, jq,"
-echo "ripgrep, fd-find — needed by the remaining scripts, to add third-party"
-echo "apt repos, (jq) to parse JSON in the Claude Code status line, and"
-echo "(ripgrep/fd, symlinked as fd) by Neovim's fuzzy pickers."
+if [ "${#SKIP[@]}" -gt 0 ]; then
+    section "Skipping"
+    for id in $(all_stage_ids); do
+        [ "${SKIP[${id}]:-false}" = true ] && echo "  - ${id}"
+    done
+fi
 
-section "Kitty (apt)"
-echo "Terminal emulator."
+if ! skipped prereqs; then
+    section "Prerequisites (apt)"
+    echo "curl, wget, stow, gnupg, ca-certificates, software-properties-common, jq,"
+    echo "ripgrep, fd-find — needed by the remaining scripts, to add third-party"
+    echo "apt repos, (jq) to parse JSON in the Claude Code status line, and"
+    echo "(ripgrep/fd, symlinked as fd) by Neovim's fuzzy pickers."
+fi
 
-section "Hack Nerd Font Mono (Nerd Fonts' official GitHub releases)"
-echo "No apt package exists for it. Installed to ~/.local/share/fonts (no"
-echo "sudo); used by kitty.conf's font_family."
+if ! skipped kitty; then
+    section "Kitty (apt)"
+    echo "Terminal emulator."
+fi
 
-section "Google Chrome (apt, via Google's official signed repository)"
-echo "Adds Google's signing key to /etc/apt/keyrings, registers the stable"
-echo "channel in /etc/apt/sources.list.d, then installs google-chrome-stable."
+if ! skipped nerd-font; then
+    section "Hack Nerd Font Mono (Nerd Fonts' official GitHub releases)"
+    echo "No apt package exists for it. Installed to ~/.local/share/fonts (no"
+    echo "sudo); used by kitty.conf's font_family."
+fi
 
-section "zsh (apt) + zinit"
-echo "Makes zsh the default shell (via chsh) and clones zinit to"
-echo "~/.local/share/zinit/zinit.git as its plugin manager."
+if ! skipped chrome; then
+    section "Google Chrome (apt, via Google's official signed repository)"
+    echo "Adds Google's signing key to /etc/apt/keyrings, registers the stable"
+    echo "channel in /etc/apt/sources.list.d, then installs google-chrome-stable."
+fi
 
-section "Starship (apt)"
-echo "Cross-shell prompt, wired into both .bashrc and .zshrc (falls back to"
-echo "the plain colored prompt already in each if starship isn't installed)."
+if ! skipped zsh; then
+    section "zsh (apt) + zinit"
+    echo "Makes zsh the default shell (via chsh) and clones zinit to"
+    echo "~/.local/share/zinit/zinit.git as its plugin manager."
+fi
 
-section "Git identity"
-echo "user.name \"${DOTFILES_GIT_NAME}\" / user.email \"${DOTFILES_GIT_EMAIL}\""
-echo "written to ~/.gitconfig.local (untracked, never committed)."
+if ! skipped starship; then
+    section "Starship (apt)"
+    echo "Cross-shell prompt, wired into both .bashrc and .zshrc (falls back to"
+    echo "the plain colored prompt already in each if starship isn't installed)."
+fi
 
-section "SSH key"
-echo "~/.ssh/id_ed25519 generated if missing; comment set to"
-echo "\"${DOTFILES_SSH_COMMENT}\"."
+if ! skipped git-identity; then
+    section "Git identity"
+    echo "user.name \"${DOTFILES_GIT_NAME}\" / user.email \"${DOTFILES_GIT_EMAIL}\""
+    echo "written to ~/.gitconfig.local (untracked, never committed)."
+fi
 
-section "vim (apt)"
-echo "No configuration — just a better default than vi for occasional use."
+if ! skipped ssh-key; then
+    section "SSH key"
+    echo "~/.ssh/id_ed25519 generated if missing; comment set to"
+    echo "\"${DOTFILES_SSH_COMMENT}\"."
+fi
 
-section "Neovim (apt) + config"
-echo "lazy.nvim-managed: which-key, oil.nvim + snacks.nvim (fuzzy picker,"
-echo "needs ripgrep for grep), neogit + gitsigns, rose-pine (moon) theme."
-echo "Plugins install themselves the first time nvim runs (needs network"
-echo "once)."
+if ! skipped vim; then
+    section "vim (apt)"
+    echo "No configuration — just a better default than vi for occasional use."
+fi
 
-section "Claude Code (apt, via Anthropic's signed repository)"
-echo "Adds the Claude Code signing key to /etc/apt/keyrings, registers the"
-echo "stable channel in /etc/apt/sources.list.d, then installs \`claude-code\`."
-echo "Falls back to the official install script only if apt cannot install it."
+if ! skipped neovim; then
+    section "Neovim (apt) + config"
+    echo "lazy.nvim-managed: which-key, oil.nvim + snacks.nvim (fuzzy picker,"
+    echo "needs ripgrep for grep), neogit + gitsigns, rose-pine (moon) theme."
+    echo "Plugins install themselves the first time nvim runs (needs network"
+    echo "once)."
+fi
 
-section "Docker (apt, via Docker's official signed repository)"
-echo "Adds Docker's signing key to /etc/apt/keyrings, registers the stable"
-echo "channel in /etc/apt/sources.list.d, then installs docker-ce docker-ce-cli"
-echo "containerd.io docker-buildx-plugin docker-compose-plugin. Adds"
-echo "${USER} to the docker group if not already a member."
+if ! skipped claude-code; then
+    section "Claude Code (apt, via Anthropic's signed repository)"
+    echo "Adds the Claude Code signing key to /etc/apt/keyrings, registers the"
+    echo "stable channel in /etc/apt/sources.list.d, then installs \`claude-code\`."
+    echo "Falls back to the official install script only if apt cannot install it."
+fi
 
-section "Stow symlinks"
-echo "Everything under home/ symlinked into \$HOME (e.g. home/.gitconfig ->"
-echo "~/.gitconfig), backing up any real file already at that path first."
+if ! skipped docker; then
+    section "Docker (apt, via Docker's official signed repository)"
+    echo "Adds Docker's signing key to /etc/apt/keyrings, registers the stable"
+    echo "channel in /etc/apt/sources.list.d, then installs docker-ce docker-ce-cli"
+    echo "containerd.io docker-buildx-plugin docker-compose-plugin. Adds"
+    echo "${USER} to the docker group if not already a member."
+fi
 
-section "GNOME/Ubuntu Dock settings (gsettings, individual keys)"
-echo "Chrome as default browser, 24-hour clock, mouse with no acceleration,"
-echo "dock moved to the bottom/shrunk/auto-hidden showing only Chrome/Kitty/"
-echo "Files (no drives, trash, or unpinned running apps), no Home icon on"
-echo "the desktop, background set to this repo's wallpaper.jpg. Each setting"
-echo "is an individual, reversible gsettings call - never a wholesale dconf"
-echo "load, which can silently break the shell."
+if ! skipped stow-symlinks; then
+    section "Stow symlinks"
+    echo "Everything under home/ symlinked into \$HOME (e.g. home/.gitconfig ->"
+    echo "~/.gitconfig), backing up any real file already at that path first."
+fi
 
-section "herdr (official installer)"
-echo "Installs to ~/.local/bin via curl -fsSL https://herdr.dev/install.sh | sh,"
-echo "then runs \`herdr integration install claude\` so herdr's sidebar gets"
-echo "native state-awareness for Claude Code sessions. Runs after the stow"
-echo "step on purpose, so it always writes into the already-symlinked (and"
-echo "so machine-portable) ~/.claude/settings.json last."
+if ! skipped gnome-settings; then
+    section "GNOME/Ubuntu Dock settings (gsettings, individual keys)"
+    echo "Chrome as default browser, 24-hour clock, mouse with no acceleration,"
+    echo "dock moved to the bottom/shrunk/auto-hidden showing only Chrome/Kitty/"
+    echo "Files (no drives, trash, or unpinned running apps), no Home icon on"
+    echo "the desktop, background set to this repo's wallpaper.jpg. Each setting"
+    echo "is an individual, reversible gsettings call - never a wholesale dconf"
+    echo "load, which can silently break the shell."
+fi
 
-section "Handy (signed GitHub release) + ydotool (apt)"
-echo "Local-only speech-to-text. Handy's .deb is verified with minisign"
-echo "against its signing key before install. Also installs ydotool (the"
-echo "Wayland text-injection backend Handy needs) and adds ${USER} to the"
-echo "input group, enables the ydotool.service user service, registers a"
-echo "GNOME custom shortcut (Ctrl+Alt+Space -> toggle transcription, since"
-echo "Handy's own in-app shortcut doesn't work under Wayland), downloads"
-echo "its default model (checksum-verified), and turns on quiet (20%)"
-echo "audio feedback + launch-at-login without popping its window in"
-echo "Handy's own settings so there's no first-run setup to click through"
-echo "and no window to dismiss every login, and leaves Handy running when"
-echo "it's done."
+if ! skipped herdr; then
+    section "herdr (official installer)"
+    echo "Installs to ~/.local/bin via curl -fsSL https://herdr.dev/install.sh | sh,"
+    echo "then runs \`herdr integration install claude\` so herdr's sidebar gets"
+    echo "native state-awareness for Claude Code sessions. Runs after the stow"
+    echo "step on purpose, so it always writes into the already-symlinked (and"
+    echo "so machine-portable) ~/.claude/settings.json last."
+fi
+
+if ! skipped handy; then
+    section "Handy (signed GitHub release) + ydotool (apt)"
+    echo "Local-only speech-to-text. Handy's .deb is verified with minisign"
+    echo "against its signing key before install. Also installs ydotool (the"
+    echo "Wayland text-injection backend Handy needs) and adds ${USER} to the"
+    echo "input group, enables the ydotool.service user service, registers a"
+    echo "GNOME custom shortcut (Ctrl+Alt+Space -> toggle transcription, since"
+    echo "Handy's own in-app shortcut doesn't work under Wayland), downloads"
+    echo "its default model (checksum-verified), and turns on quiet (20%)"
+    echo "audio feedback + launch-at-login without popping its window in"
+    echo "Handy's own settings so there's no first-run setup to click through"
+    echo "and no window to dismiss every login, and leaves Handy running when"
+    echo "it's done."
+fi
 echo
 
 reply=""
@@ -260,6 +367,7 @@ esac
 phase "Phase 2/3 — Installing"
 
 for script in scripts/*.sh; do
+    skipped "$(stage_id "${script}")" && continue
     echo
     echo "${BOLD}${CYAN}==> ${script}${RESET}"
     bash "${script}"
@@ -274,16 +382,18 @@ done
 
 phase "Phase 3/3 — What to know"
 
-case "$(getent passwd "${USER}" | cut -d: -f7)" in
-    */zsh)
-        section "Shell"
-        echo "Default shell is zsh. If you just switched to it, open a new"
-        echo "terminal/login session for it to take effect — chsh doesn't"
-        echo "affect a shell that's already running."
-        ;;
-esac
+if ! skipped zsh; then
+    case "$(getent passwd "${USER}" | cut -d: -f7)" in
+        */zsh)
+            section "Shell"
+            echo "Default shell is zsh. If you just switched to it, open a new"
+            echo "terminal/login session for it to take effect — chsh doesn't"
+            echo "affect a shell that's already running."
+            ;;
+    esac
+fi
 
-if command -v starship >/dev/null 2>&1; then
+if ! skipped starship && command -v starship >/dev/null 2>&1; then
     section "Prompt"
     echo "Starship is installed. If you just installed it, open a new"
     echo "terminal (or run \`exec \$SHELL\`) for its prompt to take effect —"
@@ -291,17 +401,19 @@ if command -v starship >/dev/null 2>&1; then
     echo "existed."
 fi
 
-section "Claude Code"
-if command -v claude >/dev/null 2>&1; then
-    echo "If you haven't already, run \`claude\` and log in when prompted."
-    echo "Claude Code needs a Pro, Max, Team, Enterprise, or Console account."
-else
-    echo "\`claude\` is not on your PATH in this shell. If it was installed"
-    echo "via the official install script it lives in ~/.local/bin — open a"
-    echo "new shell, or add that directory to your PATH."
+if ! skipped claude-code; then
+    section "Claude Code"
+    if command -v claude >/dev/null 2>&1; then
+        echo "If you haven't already, run \`claude\` and log in when prompted."
+        echo "Claude Code needs a Pro, Max, Team, Enterprise, or Console account."
+    else
+        echo "\`claude\` is not on your PATH in this shell. If it was installed"
+        echo "via the official install script it lives in ~/.local/bin — open a"
+        echo "new shell, or add that directory to your PATH."
+    fi
 fi
 
-if id -nG "${USER}" 2>/dev/null | grep -qw docker; then
+if ! skipped docker && id -nG "${USER}" 2>/dev/null | grep -qw docker; then
     section "Docker"
     echo "You're in the docker group. If you were just added, log out and"
     echo "back in (or reboot) — group membership is read at login, not"
@@ -309,7 +421,7 @@ if id -nG "${USER}" 2>/dev/null | grep -qw docker; then
     echo "error (Cannot connect to the Docker daemon...permission denied)."
 fi
 
-if command -v handy >/dev/null 2>&1; then
+if ! skipped handy && command -v handy >/dev/null 2>&1; then
     section "Handy"
     echo "Installed, model pre-selected, set to launch at login, bound to"
     echo "Ctrl+Alt+Space, and already running — nothing to click through."
@@ -323,7 +435,7 @@ if command -v handy >/dev/null 2>&1; then
     fi
 fi
 
-if [ -f "${SSH_KEY}.pub" ]; then
+if ! skipped ssh-key && [ -f "${SSH_KEY}.pub" ]; then
     section "SSH key"
     echo "$(cat "${SSH_KEY}.pub")"
     echo
@@ -343,7 +455,7 @@ fi
 # will fail until the remote is switched to SSH — install.sh only sets up an
 # SSH key, not HTTPS credentials.
 origin_url="$(git config --get remote.origin.url 2>/dev/null || true)"
-if [ -f "${SSH_KEY}.pub" ] && [ "${origin_url#https://github.com/}" != "${origin_url}" ]; then
+if ! skipped ssh-key && [ -f "${SSH_KEY}.pub" ] && [ "${origin_url#https://github.com/}" != "${origin_url}" ]; then
     ssh_url="git@github.com:${origin_url#https://github.com/}"
     case "${ssh_url}" in
         *.git) ;;

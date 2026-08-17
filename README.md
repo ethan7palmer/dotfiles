@@ -20,7 +20,9 @@ cd ~/dotfiles
 before touching anything. It's also safe to re-run any time (e.g. after
 pulling a new script) — it reuses your existing git identity and SSH key
 comment instead of re-asking. Pass `--update-identity` to be prompted for
-those again, or `--help` for all options.
+those again, `--skip=STAGE,...` (e.g. `--skip=handy,docker`) or bare
+`--skip` for a numbered checklist to leave stages out entirely, or `--help`
+for all options.
 
 ## What it sets up
 
