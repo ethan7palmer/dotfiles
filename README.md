@@ -35,7 +35,12 @@ deleting a whole path.
 file/text finder, Neogit + gitsigns with a legible add/change/delete color
 scheme, Rosé Pine Moon), plain `vim` with no configuration for quick edits.
 
-**Browser** — Google Chrome, set as the default browser.
+**Browser** — Google Chrome, set as the default browser. Launches with
+`--disable-features=Vulkan`: on an NVIDIA GPU under GNOME's default
+Wayland session, Chrome's Wayland Ozone backend can't actually use
+Vulkan, so every launch otherwise wastes several seconds attempting it
+and falling back (`'--ozone-platform=wayland' is not compatible with
+Vulkan` in the logs). Skipping the attempt removes that delay.
 
 **Git & GitHub** — your name/email baked into git config, an SSH key
 generated (or relabeled) for this machine, sane git defaults (aliases,
@@ -163,7 +168,9 @@ dotfiles/
     │   ├── herdr/config.toml
     │   ├── starship.toml
     │   └── xdg-terminals.list   # makes Kitty the default terminal app
-    ├── .local/share/backgrounds/wallpaper.jpg   # desktop background
+    ├── .local/share/
+    │   ├── backgrounds/wallpaper.jpg   # desktop background
+    │   └── applications/google-chrome.desktop   # adds --disable-features=Vulkan
     ├── .claude/               # CLAUDE.md + settings.json
     ├── .zshrc / .bashrc / .bash_aliases
     ├── .gitconfig / .gitignore_global
@@ -226,6 +233,24 @@ a flat object — every field lives nested one level down, under a
 `"settings"` key (`store.set("settings", ...)` in Handy's own
 `settings.rs`), which nothing in the README mentions either. `15-handy.sh`
 writes to the real path and shape, pinned against source, not prose.
+
+**Chrome's Vulkan flag lives in a `.desktop` override, not a flags file.**
+Chromium supports a `~/.config/google-chrome-flags.conf` file on some
+builds, but this Google-distributed `.deb`'s launcher
+(`/usr/bin/google-chrome-stable`) doesn't read one — checked directly by
+watching whether the flag actually showed up in the running process's
+`/proc/<pid>/cmdline`; it never did. What does work, verified the same
+way, is a user-level XDG override at
+`~/.local/share/applications/google-chrome.desktop`, which — being in
+`$XDG_DATA_HOME` — takes priority over `/usr/share/applications/` for the
+same desktop-file-id without touching the package-owned original. It's a
+trimmed copy of Chrome's own file (dropped: ~50 languages' worth of
+`GenericName[xx]`/`Name[xx]` translations on the `Exec` lines this repo
+needs to add the flag to; kept: everything that affects how the file
+actually behaves as a launcher). Trimming means it won't inherit
+translation or MIME-type updates from future Chrome packages — acceptable
+for a single-user, English-language machine, but the tradeoff to know
+about if that ever changes.
 Because Handy loads this file into memory once and periodically flushes
 its own copy back to disk, the script also stops any running Handy
 instance before editing the file and restarts it after — editing it live
