@@ -228,6 +228,19 @@ echo "then runs \`herdr integration install claude\` so herdr's sidebar gets"
 echo "native state-awareness for Claude Code sessions. Runs after the stow"
 echo "step on purpose, so it always writes into the already-symlinked (and"
 echo "so machine-portable) ~/.claude/settings.json last."
+
+section "Handy (signed GitHub release) + ydotool (apt)"
+echo "Local-only speech-to-text. Handy's .deb is verified with minisign"
+echo "against its signing key before install. Also installs ydotool (the"
+echo "Wayland text-injection backend Handy needs) and adds ${USER} to the"
+echo "input group, enables the ydotool.service user service, registers a"
+echo "GNOME custom shortcut (Ctrl+Alt+Space -> toggle transcription, since"
+echo "Handy's own in-app shortcut doesn't work under Wayland), downloads"
+echo "its default model (checksum-verified), and turns on quiet (20%)"
+echo "audio feedback + launch-at-login without popping its window in"
+echo "Handy's own settings so there's no first-run setup to click through"
+echo "and no window to dismiss every login, and leaves Handy running when"
+echo "it's done."
 echo
 
 reply=""
@@ -294,6 +307,20 @@ if id -nG "${USER}" 2>/dev/null | grep -qw docker; then
     echo "back in (or reboot) — group membership is read at login, not"
     echo "live, so until then \`docker\` commands fail with a permissions"
     echo "error (Cannot connect to the Docker daemon...permission denied)."
+fi
+
+if command -v handy >/dev/null 2>&1; then
+    section "Handy"
+    echo "Installed, model pre-selected, set to launch at login, bound to"
+    echo "Ctrl+Alt+Space, and already running — nothing to click through."
+    if id -nG "${USER}" 2>/dev/null | grep -qw input; then
+        echo "You're in the input group (needed by ydotool). If you were"
+        echo "just added, REBOOT before relying on the hotkey — logging out"
+        echo "and back in is not enough to pick this up on every system (the"
+        echo "background service ydotool runs under can survive a plain"
+        echo "logout), and until it does, Handy records but can't type the"
+        echo "result anywhere."
+    fi
 fi
 
 if [ -f "${SSH_KEY}.pub" ]; then

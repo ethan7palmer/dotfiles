@@ -2,8 +2,8 @@
 
 Personal provisioning repo for a fresh Ubuntu 26 machine. Clone it, run one
 script, and it turns a stock install into a fully configured dev machine —
-shell, terminal, editor, Docker, Git/SSH, Claude Code, and GNOME's
-appearance.
+shell, terminal, editor, Docker, Git/SSH, Claude Code, voice dictation, and
+GNOME's appearance.
 
 ## Quick start
 
@@ -47,9 +47,23 @@ generated (or relabeled) for this machine, sane git defaults (aliases,
 sidebar/manager) wired up with native Claude Code session awareness.
 
 **Desktop (GNOME)** — dock moved to the bottom, shrunk to fit its icons,
-auto-hidden, showing only Chrome/Kitty/Files (no drives, trash, or unpinned
-running apps), no Home icon cluttering the desktop, mouse speed/acceleration
-tuned, 24-hour clock, and this repo's own wallpaper set as the background.
+auto-hidden, showing only Chrome/Kitty (no drives, trash, unpinned running
+apps, or Files), 32px dock icons, no Home icon cluttering the desktop, mouse
+speed/acceleration tuned, 24-hour clock, and this repo's own wallpaper set
+as the background.
+
+**Voice dictation** — Handy, a local-only speech-to-text app (no audio ever
+leaves the machine), plus `ydotool` (the text-injection backend it needs
+under GNOME's default Wayland session) and a `Ctrl+Alt+Space` shortcut to
+toggle it. Its default model (Parakeet Unified EN 0.6B, Handy's own
+top-recommended, English-only) is downloaded and selected up front, so
+there's no first-run setup to click through — Handy is left running after
+the script finishes, ready to use immediately. Launches at login without
+popping its window (it just sits in the tray); a quiet audio cue (20%
+volume) marks the start/stop of recording in place of Handy's on-screen
+overlay, which stays off (its default on Linux — that overlay is known to
+steal focus and break pasting the transcript back into the app you were
+dictating into).
 
 ## Scripts
 
@@ -74,6 +88,7 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `12-stow-symlinks.sh` | Symlinks everything in `home/` into `$HOME` |
 | `13-gnome-settings.sh` | The desktop tweaks described above |
 | `14-herdr.sh` | herdr (official installer) + Claude Code integration |
+| `15-handy.sh` | Handy (signed GitHub release) + default model + ydotool (apt) + its GNOME shortcut |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
@@ -86,7 +101,7 @@ warrants — useful if you need to get this approved for a work machine.
 
 **Ubuntu's own apt repos** (baseline OS trust): curl, wget, stow, gnupg,
 ca-certificates, software-properties-common, jq, ripgrep, fd-find, kitty,
-zsh, starship, vim, neovim.
+zsh, starship, vim, neovim, ydotool, minisign.
 
 **Official vendor apt repos** (GPG-signed, each vendor's own documented
 setup — standard practice, not a special exception):
@@ -103,6 +118,17 @@ setup — standard practice, not a special exception):
   `~/.local/bin`, downloads a prebuilt binary and verifies its SHA256
   against a manifest fetched from the same domain (protects against
   corruption/CDN issues, not against `herdr.dev` itself being compromised).
+- Handy — the latest `.deb` from `cjpais/handy`'s GitHub releases,
+  cryptographically verified before install with `minisign` against
+  Handy's signing key (pinned in `15-handy.sh` itself, not fetched
+  alongside the release it verifies — see the comment there for why that
+  distinction matters). Its default model downloads from a second source,
+  `blob.handy.computer` (Handy's own model mirror), checked only against a
+  SHA256 pinned in `15-handy.sh` from Handy's `catalog.json` at the time
+  it was written — the same trust-on-first-use pattern as the signing key
+  above, not a live signature, and a weaker guarantee than the `.deb`'s
+  (a checksum proves the file matches what was pinned, not that the pin
+  itself was ever independently trustworthy).
 
 **Git-cloned source** (code that runs inside your shell/editor):
 - zsh: [`zdharma-continuum/zinit`](https://github.com/zdharma-continuum/zinit)
@@ -181,10 +207,35 @@ diff, and are each independently undoable with `gsettings reset`. The
 script only overrides what actually differs from Ubuntu's own defaults —
 everything else on the machine is left untouched.
 
+**Handy's hotkey is a GNOME custom shortcut, not Handy's own in-app one.**
+Handy's built-in global-shortcut handling (`rdev`) can't register
+system-wide shortcuts under Wayland, which is GNOME's default session on
+Ubuntu 26. Handy's own docs work around this by having the desktop
+environment own the keybinding and call Handy's CLI instead
+(`handy --toggle-transcription`) — `15-handy.sh` sets that up as a GNOME
+custom keybinding via `gsettings`, the same individual-key pattern as the
+rest of the desktop settings above.
+
+**Handy's settings file location and shape are verified against its
+source, not its README.** Handy's own docs state its Linux app-data
+directory is `~/.config/com.pais.handy`; the real one (confirmed by
+checking what Handy itself wrote there on first launch) is
+`~/.local/share/com.pais.handy` — standard Tauri `app_data_dir()`
+resolution, nothing Handy-specific. The settings file itself is also not
+a flat object — every field lives nested one level down, under a
+`"settings"` key (`store.set("settings", ...)` in Handy's own
+`settings.rs`), which nothing in the README mentions either. `15-handy.sh`
+writes to the real path and shape, pinned against source, not prose.
+Because Handy loads this file into memory once and periodically flushes
+its own copy back to disk, the script also stops any running Handy
+instance before editing the file and restarts it after — editing it live
+underneath a running instance loses the edit to Handy's next autosave.
+
 ## Conventions
 
 - Prefer the apt package for anything that has one. Never snap. Fall back to
   an official vendor install script only when no apt package exists (Hack
-  Nerd Font, Docker, herdr).
+  Nerd Font, Docker, herdr, Handy), verifying a cryptographic signature
+  before install wherever the vendor publishes one (Handy).
 - No secrets in the repo — SSH keys and git identity are generated/entered
   on the target machine, not shipped here.
