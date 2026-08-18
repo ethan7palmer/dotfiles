@@ -3,7 +3,9 @@
 # Entrypoint for provisioning this machine.
 #
 #   Phase 1 — interactive pre-flight (summary + explicit confirmation)
-#   Phase 2 — unattended execution of scripts/*.sh in numeric order
+#   Phase 2 — unattended execution of scripts/*.sh in numeric order, except
+#             16-gh.sh's one-time gh auth login browser approval - the only
+#             script here that can't be made fully unattended
 #   Phase 3 — reference: what to know / do, printed every run (not just the
 #             first) so it's easy to glance at again later
 #
@@ -22,8 +24,9 @@ if [ -t 1 ] && command -v tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null |
     RESET="$(tput sgr0)"
     CYAN="$(tput setaf 6)"
     GREEN="$(tput setaf 2)"
+    YELLOW="$(tput setaf 3)"
 else
-    BOLD="" RESET="" CYAN="" GREEN=""
+    BOLD="" RESET="" CYAN="" GREEN="" YELLOW=""
 fi
 
 phase() {
@@ -36,6 +39,12 @@ phase() {
 section() {
     echo
     echo "${BOLD}${CYAN}-- $1${RESET}"
+}
+
+# A highlighted, single-line call to action - Phase 3 uses this so the one
+# thing you actually need to go do never gets lost in surrounding prose.
+action() {
+    echo "${BOLD}${YELLOW}-> $1${RESET}"
 }
 
 # ---------------------------------------------------------------------------
@@ -54,7 +63,8 @@ ${BOLD}Usage:${RESET} ./install.sh [OPTIONS]
 
 Provisions this machine: prereqs, Kitty, Hack Nerd Font, Chrome, zsh,
 Starship, git identity, an SSH key, vim, Docker, Claude Code, herdr, Handy,
-then symlinks home/ into \$HOME via GNU Stow. Safe to re-run any time.
+the GitHub CLI, then symlinks home/ into \$HOME via GNU Stow. Safe to
+re-run any time.
 
 ${BOLD}Options:${RESET}
   --update-identity   Re-prompt for git user.name/user.email and the SSH
@@ -319,6 +329,14 @@ if ! skipped handy; then
     echo "and no window to dismiss every login, and leaves Handy running when"
     echo "it's done."
 fi
+
+if ! skipped gh; then
+    section "GitHub CLI (GitHub's own apt repo)"
+    echo "Then \`gh auth login\` - the one interactive step in this whole"
+    echo "install. You'll approve a one-time code in a browser; the SSH key"
+    echo "above then gets uploaded to your GitHub account automatically, no"
+    echo "extra prompt, replacing the manual paste-it-in step below."
+fi
 echo
 
 reply=""
@@ -357,69 +375,79 @@ if ! skipped zsh; then
     case "$(getent passwd "${USER}" | cut -d: -f7)" in
         */zsh)
             section "Shell"
-            echo "Default shell is zsh. If you just switched to it, open a new"
-            echo "terminal/login session for it to take effect — chsh doesn't"
-            echo "affect a shell that's already running."
+            action "Open a new terminal - zsh won't apply to this one."
             ;;
     esac
 fi
 
 if ! skipped starship && command -v starship >/dev/null 2>&1; then
     section "Prompt"
-    echo "Starship is installed. If you just installed it, open a new"
-    echo "terminal (or run \`exec \$SHELL\`) for its prompt to take effect —"
-    echo "the current shell already loaded .bashrc/.zshrc before starship"
-    echo "existed."
+    action "Open a new terminal (or run \`exec \$SHELL\`) for Starship to apply."
 fi
 
 if ! skipped claude-code; then
     section "Claude Code"
     if command -v claude >/dev/null 2>&1; then
-        echo "If you haven't already, run \`claude\` and log in when prompted."
-        echo "Claude Code needs a Pro, Max, Team, Enterprise, or Console account."
+        action "Run \`claude\` and log in (Pro/Max/Team/Enterprise/Console account)."
     else
-        echo "\`claude\` is not on your PATH in this shell. If it was installed"
-        echo "via the official install script it lives in ~/.local/bin — open a"
-        echo "new shell, or add that directory to your PATH."
+        action "Open a new shell, or add ~/.local/bin to PATH, then run \`claude\`."
     fi
 fi
 
 if ! skipped docker && id -nG "${USER}" 2>/dev/null | grep -qw docker; then
     section "Docker"
-    echo "You're in the docker group. If you were just added, log out and"
-    echo "back in (or reboot) — group membership is read at login, not"
-    echo "live, so until then \`docker\` commands fail with a permissions"
-    echo "error (Cannot connect to the Docker daemon...permission denied)."
+    action "Log out and back in (or reboot) for docker group access to apply."
 fi
 
 if ! skipped handy && command -v handy >/dev/null 2>&1; then
     section "Handy"
-    echo "Installed, model pre-selected, set to launch at login, bound to"
-    echo "Ctrl+Alt+Space, and already running — nothing to click through."
+    echo "Keybind: Ctrl+Alt+Space to toggle transcription."
     if id -nG "${USER}" 2>/dev/null | grep -qw input; then
-        echo "You're in the input group (needed by ydotool). If you were"
-        echo "just added, REBOOT before relying on the hotkey — logging out"
-        echo "and back in is not enough to pick this up on every system (the"
-        echo "background service ydotool runs under can survive a plain"
-        echo "logout), and until it does, Handy records but can't type the"
-        echo "result anywhere."
+        action "REBOOT - the input-group permission ydotool needs won't"
+        action "survive just logging out, so the keybind can't type yet."
     fi
 fi
 
+# Not just "logged in" - scripts/16-gh.sh's SSH key upload needs the
+# admin:public_key scope specifically, which a plain `gh auth login`
+# only grants if you go through its interactive SSH-key prompt (which
+# --skip-ssh-key deliberately turns off - see 16-gh.sh's own comment for
+# why). So a login can succeed and still leave the upload undone.
+gh_can_manage_keys() {
+    command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 &&
+        gh api -i user 2>/dev/null | grep -qi '^x-oauth-scopes:.*\badmin:public_key\b'
+}
+
+if ! skipped gh && command -v gh >/dev/null 2>&1 && ! gh_can_manage_keys; then
+    section "GitHub CLI"
+    if ! gh auth status >/dev/null 2>&1; then
+        action "Run: gh auth login --hostname github.com --git-protocol ssh \\"
+        action "  --web --skip-ssh-key --scopes admin:public_key"
+    else
+        action "Run: gh auth refresh --hostname github.com --scopes admin:public_key"
+    fi
+fi
+
+# Verified live, not just asserted - a stale "paste this in" reminder that
+# never re-checks reality is worse than no reminder at all. ssh -T always
+# exits 1 even on success (GitHub refuses shell access on purpose) - under
+# this script's pipefail that poisons a piped exit check regardless of
+# whether grep matched, so the output is captured into a variable first
+# and grepped separately instead of piping directly into grep.
 if ! skipped ssh-key && [ -f "${SSH_KEY}.pub" ]; then
     section "SSH key"
-    echo "$(cat "${SSH_KEY}.pub")"
-    echo
-    echo "If you haven't already, add it at github.com under Settings ->"
-    echo "SSH and GPG keys (paste the line above into \"Key\", give it a"
-    echo "title), then verify it with:"
-    echo
-    echo "  ssh -T git@github.com"
-    echo
-    echo "That trusts GitHub's host fingerprint on first connect (type"
-    echo "\"yes\" when asked) and confirms the key works — look for"
-    echo "\"Hi <username>! You've successfully authenticated...\" in the"
-    echo "output."
+    ssh_check="$(ssh -T -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 \
+        git@github.com 2>&1 || true)"
+    if grep -q "successfully authenticated" <<<"${ssh_check}"; then
+        echo "Verified: git push/pull over SSH works."
+    elif gh_can_manage_keys; then
+        action "Couldn't verify SSH just now (network?) - try again:"
+        action "  ssh -T git@github.com"
+    else
+        action "Add this key at github.com -> Settings -> SSH and GPG keys:"
+        echo
+        echo "$(cat "${SSH_KEY}.pub")"
+    fi
 fi
 
 # The Day 0 clone in this README uses https://, so pushing back to this repo
@@ -433,10 +461,20 @@ if ! skipped ssh-key && [ -f "${SSH_KEY}.pub" ] && [ "${origin_url#https://githu
         *) ssh_url="${ssh_url}.git" ;;
     esac
     section "This repo's remote"
-    echo "Set to HTTPS, not SSH. Pushing changes back to this dotfiles repo"
-    echo "will fail with HTTPS (no credentials are set up for that). Run"
-    echo "this to switch it to the SSH key above instead:"
-    echo
-    echo "  git remote set-url origin ${ssh_url}"
+    action "Run: git remote set-url origin ${ssh_url}"
+fi
+
+if ! skipped ssh-key || ! skipped gh; then
+    section "Git & GitHub, in short"
+    echo "SSH key -> what git uses for any remote whose URL starts with"
+    echo "git@github.com:... (see \"This repo's remote\" above for whether"
+    echo "this repo's does yet). OAuth token (gh auth login) -> unrelated -"
+    echo "only for the gh CLI's own commands (gh pr create, gh api, etc)."
+    echo "gh uploaded the SSH key to your account as a convenience during"
+    echo "login; that doesn't merge the two into one mechanism, it just"
+    echo "means both live on the same GitHub account. Plain git over"
+    echo "https:// is NOT set up (no credential helper) - only SSH remotes"
+    echo "and gh's own commands work right now. \`gh auth setup-git\` adds"
+    echo "that, if you ever need it."
 fi
 echo

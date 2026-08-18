@@ -49,7 +49,9 @@ Vulkan` in the logs). Skipping the attempt removes that delay.
 
 **Git & GitHub** — your name/email baked into git config, an SSH key
 generated (or relabeled) for this machine, sane git defaults (aliases,
-`pull.rebase`, etc).
+`pull.rebase`, etc), and the GitHub CLI (`gh`) installed and authenticated
+- which also uploads that SSH key to your GitHub account for you, the one
+manual step this repo can't otherwise automate.
 
 **Docker** — Docker CE, with your user added to the `docker` group.
 
@@ -99,10 +101,14 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `13-gnome-settings.sh` | The desktop tweaks described above |
 | `14-herdr.sh` | herdr (official installer) + Claude Code integration |
 | `15-handy.sh` | Handy (signed GitHub release) + default model + ydotool (apt) + its GNOME shortcut |
+| `16-gh.sh` | GitHub CLI (GitHub's own apt repo) + `gh auth login`, uploading the SSH key above |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
-already-installed package.
+already-installed package. `16-gh.sh` is the one exception to "safe to
+walk away during Phase 2": until `gh` is authenticated, it needs you at
+the keyboard for a one-time browser approval - see "A couple of
+deliberate design choices" below.
 
 ## Updating
 
@@ -144,6 +150,8 @@ setup — standard practice, not a special exception):
 - Google Chrome — `dl.google.com`
 - Docker CE + cli + containerd.io + buildx + compose — `download.docker.com`
 - Claude Code — `downloads.claude.ai`, Anthropic's own repo
+- GitHub CLI (`gh`) — `cli.github.com`, GitHub's own repo (used instead of
+  Ubuntu's `universe` package, which lags upstream by dozens of versions)
 
 **Direct downloads / vendor scripts** (no apt package exists):
 - Hack Nerd Font Mono — a font tarball from `ryanoasis/nerd-fonts`'s GitHub
@@ -289,6 +297,21 @@ Because Handy loads this file into memory once and periodically flushes
 its own copy back to disk, the script also stops any running Handy
 instance before editing the file and restarts it after — editing it live
 underneath a running instance loses the edit to Handy's next autosave.
+
+**`16-gh.sh` is the one script here that isn't fully unattended, on
+purpose.** `gh auth login`'s OAuth flow needs a human to approve a
+one-time code in a browser — that's GitHub's actual security control
+proving this machine is really you, so there's no way to script around
+it existing at all. Everything else about it is automated, though:
+`gh auth login` runs with `--skip-ssh-key` to turn off its own
+interactive "upload this key?" prompt, and the script instead calls
+`gh ssh-key add` directly right after — confirmed against a real account
+to be fully non-interactive and idempotent (re-adding an already-present
+key just prints "already exists" and exits 0). That one command replaces
+what used to be a fully manual "copy the public key, paste it into
+GitHub's Settings" step, with zero prompts of its own. install.sh's
+Phase 3 report checks `gh auth status` before deciding whether to still
+show that manual fallback.
 
 ## Conventions
 
