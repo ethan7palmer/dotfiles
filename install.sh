@@ -10,6 +10,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
+source lib/stages.sh
 
 # ---------------------------------------------------------------------------
 # Output styling — only when stdout is an interactive terminal that supports
@@ -41,25 +42,9 @@ section() {
 # Options
 # ---------------------------------------------------------------------------
 
-# Each scripts/NN-name.sh maps to a stage id of just "name" (numeric prefix
-# stripped) — that id is what --skip takes and what the interactive picker
-# lists.
-stage_id() {
-    basename "$1" .sh | sed -E 's/^[0-9]+-//'
-}
-
-all_stage_ids() {
-    local script
-    for script in scripts/*.sh; do
-        stage_id "${script}"
-    done
-}
-
 FORCE_IDENTITY_PROMPT=false
 INTERACTIVE_SKIP=false
 declare -A SKIP=()
-
-skipped() { [ "${SKIP[$1]:-false}" = true ]; }
 
 for arg in "$@"; do
     case "${arg}" in
@@ -79,7 +64,7 @@ ${BOLD}Options:${RESET}
   --skip=STAGE,...    Skip these stages (comma-separated). Stage ids are
                        the scripts/ filenames with the numeric prefix
                        stripped, e.g. handy, docker, gnome-settings.
-                       Current stages: $(all_stage_ids | paste -sd, -)
+                       Current stages: $(all_stage_ids scripts | paste -sd, -)
   --skip               Same, but prompts with a numbered checklist instead
                        of taking stage ids on the command line.
   -h, --help           Show this help and exit.
@@ -91,7 +76,7 @@ EOF
             ;;
         --skip=*)
             raw="${arg#--skip=}"
-            valid="$(all_stage_ids)"
+            valid="$(all_stage_ids scripts)"
             for id in ${raw//,/ }; do
                 if ! grep -qx "${id}" <<<"${valid}"; then
                     echo "Unknown stage for --skip: ${id}" >&2
@@ -204,22 +189,7 @@ if [ "${INTERACTIVE_SKIP}" = true ]; then
     section "Stages to skip"
     echo "Enter the numbers of any stages to skip (space or comma separated),"
     echo "or press Enter to skip none:"
-    stage_list=()
-    i=1
-    for id in $(all_stage_ids); do
-        stage_list+=("${id}")
-        echo "  ${i}) ${id}"
-        i=$((i + 1))
-    done
-    skip_reply=""
-    read -r -p "> " skip_reply || true
-    for token in ${skip_reply//,/ }; do
-        if [[ "${token}" =~ ^[0-9]+$ ]] && [ "${token}" -ge 1 ] && [ "${token}" -le "${#stage_list[@]}" ]; then
-            SKIP["${stage_list[$((token - 1))]}"]=true
-        else
-            echo "Ignoring unrecognized entry: ${token}" >&2
-        fi
-    done
+    prompt_skip_picker scripts
 fi
 
 echo
@@ -227,8 +197,8 @@ echo "${BOLD}This will install the following on this machine:${RESET}"
 
 if [ "${#SKIP[@]}" -gt 0 ]; then
     section "Skipping"
-    for id in $(all_stage_ids); do
-        [ "${SKIP[${id}]:-false}" = true ] && echo "  - ${id}"
+    for id in $(all_stage_ids scripts); do
+        skipped "${id}" && echo "  - ${id}"
     done
 fi
 

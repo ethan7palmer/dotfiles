@@ -24,6 +24,9 @@ those again, `--skip=STAGE,...` (e.g. `--skip=handy,docker`) or bare
 `--skip` for a numbered checklist to leave stages out entirely, or `--help`
 for all options.
 
+Once everything's installed, `./update.sh` keeps it current — see
+[Updating](#updating) below.
+
 ## What it sets up
 
 **Shell & terminal** — zsh as the default shell (zinit, autosuggestions,
@@ -101,6 +104,32 @@ Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
 already-installed package.
 
+## Updating
+
+```bash
+./update.sh
+```
+
+Keeps everything this repo installed current — never a system-wide `apt
+upgrade`, and never install-only steps like the identity prompts or GNOME
+settings. Deliberately a separate script and a separate `updates/`
+directory from `install.sh`/`scripts/`, rather than folding an "update
+mode" into the install scripts — installing and updating a piece of
+software are different enough operations (e.g. Handy has no apt repo to
+upgrade from; updating it means re-checking GitHub for a newer signed
+release) that keeping them in the same file was making that file harder
+to follow, not easier. Same `--skip=STAGE,...` / bare `--skip` / `--help`
+as `install.sh`.
+
+| Script | What it does |
+| --- | --- |
+| `01-apt.sh` | `apt install --only-upgrade` on exactly the apt packages this repo installs |
+| `02-claude-code.sh` | Upgrades Claude Code, whichever of apt/the official script installed it |
+| `03-handy.sh` | Re-checks GitHub for a newer signed release, reinstalls if there is one |
+| `04-herdr.sh` | `herdr update` (it self-updates) |
+| `05-zsh-plugins.sh` | `zinit self-update` + `zinit update --all` |
+| `06-neovim-plugins.sh` | Headless `Lazy! sync`, rewrites the tracked `lazy-lock.json` |
+
 ## Where things come from
 
 Everything this repo installs, grouped by source and how much scrutiny it
@@ -162,7 +191,10 @@ everything else above.
 ```
 dotfiles/
 ├── install.sh     # entrypoint: pre-flight → run scripts/ → report
+├── update.sh      # entrypoint: pre-flight → run updates/ (see "Updating" above)
 ├── scripts/       # numbered, idempotent, run in numeric order (see above)
+├── updates/       # numbered, idempotent, run in numeric order (see "Updating" above)
+├── lib/           # small pieces shared by two or more of the above
 └── home/          # one Stow package, mirrors $HOME directly:
     ├── .config/
     │   ├── nvim/            # Neovim config (see "What it sets up" above)

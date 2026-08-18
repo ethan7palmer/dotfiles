@@ -38,13 +38,7 @@ else
         sudo apt install -y minisign
     fi
 
-    # Pinned from Handy's own src-tauri/tauri.conf.json
-    # (plugins.updater.pubkey), verified against the v0.9.5 release while
-    # writing this script. Deliberately hardcoded rather than fetched at
-    # install time — fetching the "trusted" key from the same GitHub repo
-    # it's meant to verify would let a compromised repo defeat the check by
-    # rotating both the key and the release at once.
-    HANDY_PUBKEY_B64="dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJBQjcyMDk1MjA2NjAxRjkKUldUNUFXWWdsU0MzdXRRZi8zYzhqV2FaNUVDbDd2Rk5VM1IvWWowVXdmRFNKQ1BrMXF5RFFsLy8K"
+    source "$(dirname "$0")/../lib/handy-pubkey.sh"
 
     TMP_DIR="$(mktemp -d)"
     trap 'rm -rf "${TMP_DIR}"' EXIT
