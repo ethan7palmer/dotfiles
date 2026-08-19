@@ -83,25 +83,25 @@ Everything under `scripts/` is one app or setting per file, numbered so they
 run in a predictable order. Add a new step by adding a new numbered file —
 `install.sh` picks it up automatically, no edits needed there.
 
-| Script | What it does |
-| --- | --- |
-| `00-prereqs.sh` | curl, wget, stow, gnupg, jq, ripgrep, fd-find, and the apt-repo tooling the later scripts need |
-| `01-kitty.sh` | Kitty terminal (apt) |
-| `02-nerd-font.sh` | Hack Nerd Font Mono (no apt package exists — official GitHub release) |
-| `03-chrome.sh` | Google Chrome (Google's official apt repo) |
-| `04-zsh.sh` | zsh (apt) + zinit, sets it as the default shell |
-| `05-starship.sh` | Starship prompt (apt) |
-| `06-git-identity.sh` | Writes your git `user.name`/`user.email` |
-| `07-ssh-key.sh` | Generates (or relabels) `~/.ssh/id_ed25519` |
-| `08-vim.sh` | vim (apt), unconfigured |
-| `09-neovim.sh` | Neovim (apt) + the full config described above |
-| `10-docker.sh` | Docker CE (Docker's official apt repo) |
-| `11-claude-code.sh` | Claude Code (Anthropic's signed apt repo) |
-| `12-stow-symlinks.sh` | Symlinks everything in `home/` into `$HOME` |
-| `13-gnome-settings.sh` | The desktop tweaks described above |
-| `14-herdr.sh` | herdr (official installer) + Claude Code integration |
-| `15-handy.sh` | Handy (signed GitHub release) + default model + ydotool (apt) + its GNOME shortcut |
-| `16-gh.sh` | GitHub CLI (GitHub's own apt repo) + `gh auth login`, uploading the SSH key above |
+| Script | What it does | Method |
+| --- | --- | --- |
+| `00-prereqs.sh` | curl, wget, stow, gnupg, jq, ripgrep, fd-find, and the apt-repo tooling the later scripts need | apt |
+| `01-kitty.sh` | Kitty terminal | apt |
+| `02-nerd-font.sh` | Hack Nerd Font Mono (no apt package exists) | GitHub release |
+| `03-chrome.sh` | Google Chrome | vendor apt repo |
+| `04-zsh.sh` | zsh + zinit, sets it as the default shell | apt + git clone (zinit) |
+| `05-starship.sh` | Starship prompt | apt |
+| `06-git-identity.sh` | Writes your git `user.name`/`user.email` | — |
+| `07-ssh-key.sh` | Generates (or relabels) `~/.ssh/id_ed25519` | — |
+| `08-vim.sh` | vim, unconfigured | apt |
+| `09-neovim.sh` | Neovim + the full config described above | apt |
+| `10-docker.sh` | Docker CE | vendor apt repo |
+| `11-claude-code.sh` | Claude Code | vendor apt repo |
+| `12-stow-symlinks.sh` | Symlinks everything in `home/` into `$HOME` | — |
+| `13-gnome-settings.sh` | The desktop tweaks described above | — |
+| `14-herdr.sh` | herdr + Claude Code integration | vendor script |
+| `15-handy.sh` | Handy + default model + ydotool + its GNOME shortcut | signed GitHub release + apt (ydotool) |
+| `16-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
@@ -129,12 +129,11 @@ as `install.sh`.
 
 | Script | What it does |
 | --- | --- |
-| `01-apt.sh` | `apt install --only-upgrade` on exactly the apt packages this repo installs |
-| `02-claude-code.sh` | Upgrades Claude Code, whichever of apt/the official script installed it |
-| `03-handy.sh` | Re-checks GitHub for a newer signed release, reinstalls if there is one |
-| `04-herdr.sh` | `herdr update` (it self-updates) |
-| `05-zsh-plugins.sh` | `zinit self-update` + `zinit update --all` |
-| `06-neovim-plugins.sh` | Headless `Lazy! sync`, rewrites the tracked `lazy-lock.json` |
+| `01-apt.sh` | `apt install --only-upgrade` on exactly the apt packages this repo installs (includes Claude Code) |
+| `02-handy.sh` | Re-checks GitHub for a newer signed release, reinstalls if there is one |
+| `03-herdr.sh` | `herdr update` (it self-updates) |
+| `04-zsh-plugins.sh` | `zinit self-update` + `zinit update --all` |
+| `05-neovim-plugins.sh` | Headless `Lazy! sync`, rewrites the tracked `lazy-lock.json` |
 
 ## Where things come from
 
@@ -156,8 +155,6 @@ setup — standard practice, not a special exception):
 **Direct downloads / vendor scripts** (no apt package exists):
 - Hack Nerd Font Mono — a font tarball from `ryanoasis/nerd-fonts`'s GitHub
   releases. Static files, no code execution.
-- Claude Code, fallback only if the apt install fails — Anthropic's own
-  official `curl | bash` installer.
 - herdr — `curl | sh` from `herdr.dev`. No `sudo`, installs only to
   `~/.local/bin`, downloads a prebuilt binary and verifies its SHA256
   against a manifest fetched from the same domain (protects against
@@ -311,7 +308,7 @@ key just prints "already exists" and exits 0). That one command replaces
 what used to be a fully manual "copy the public key, paste it into
 GitHub's Settings" step, with zero prompts of its own. install.sh's
 Phase 3 report checks `gh auth status` before deciding whether to still
-show that manual fallback.
+show that manual instruction.
 
 ## Conventions
 

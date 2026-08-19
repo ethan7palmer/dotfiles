@@ -278,7 +278,6 @@ if ! skipped claude-code; then
     section "Claude Code (apt, via Anthropic's signed repository)"
     echo "Adds the Claude Code signing key to /etc/apt/keyrings, registers the"
     echo "stable channel in /etc/apt/sources.list.d, then installs \`claude-code\`."
-    echo "Falls back to the official install script only if apt cannot install it."
 fi
 
 if ! skipped docker; then
@@ -387,11 +386,7 @@ fi
 
 if ! skipped claude-code; then
     section "Claude Code"
-    if command -v claude >/dev/null 2>&1; then
-        action "Run \`claude\` and log in (Pro/Max/Team/Enterprise/Console account)."
-    else
-        action "Open a new shell, or add ~/.local/bin to PATH, then run \`claude\`."
-    fi
+    action "Run \`claude\` and log in (Pro/Max/Team/Enterprise/Console account)."
 fi
 
 if ! skipped docker && id -nG "${USER}" 2>/dev/null | grep -qw docker; then
