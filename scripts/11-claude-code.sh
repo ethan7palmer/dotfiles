@@ -10,13 +10,14 @@
 # Docs: https://code.claude.com/docs/en/setup
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 if dpkg -s claude-code >/dev/null 2>&1; then
-    echo "claude-code already installed via apt — nothing to do."
+    ok "claude-code already installed via apt — nothing to do."
     echo "  (upgrade with: sudo apt update && sudo apt upgrade claude-code)"
     exit 0
 elif command -v claude >/dev/null 2>&1; then
-    echo "claude already installed at $(command -v claude) — leaving it alone."
+    ok "claude already installed at $(command -v claude) — leaving it alone."
     echo "  (upgrade with: claude update)"
     exit 0
 fi
@@ -33,7 +34,7 @@ EXPECTED_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
 sudo install -d -m 0755 /etc/apt/keyrings
 
 if [ ! -s "${KEYRING}" ]; then
-    echo "Downloading the Claude Code signing key..."
+    change "Downloading the Claude Code signing key..."
     sudo curl -fsSL "${KEY_URL}" -o "${KEYRING}"
 fi
 
@@ -42,14 +43,14 @@ fi
 actual_fpr="$(gpg --show-keys --with-colons "${KEYRING}" |
     awk -F: '$1 == "fpr" { print $10; exit }')"
 if [ "${actual_fpr}" != "${EXPECTED_FPR}" ]; then
-    echo "ERROR: signing key fingerprint mismatch at ${KEYRING}" >&2
-    echo "  expected: ${EXPECTED_FPR}" >&2
-    echo "  actual:   ${actual_fpr:-<no valid OpenPGP data>}" >&2
+    err "signing key fingerprint mismatch at ${KEYRING}"
+    echo "${RED}  expected: ${EXPECTED_FPR}${RESET}" >&2
+    echo "${RED}  actual:   ${actual_fpr:-<no valid OpenPGP data>}${RESET}" >&2
     exit 1
 fi
 
 if [ ! -f "${SOURCES_LIST}" ] || ! grep -qxF "${REPO_LINE}" "${SOURCES_LIST}"; then
-    echo "Registering the Claude Code apt repository (${CHANNEL} channel)..."
+    change "Registering the Claude Code apt repository (${CHANNEL} channel)..."
     echo "${REPO_LINE}" | sudo tee "${SOURCES_LIST}" >/dev/null
 fi
 

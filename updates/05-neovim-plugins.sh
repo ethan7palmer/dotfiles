@@ -5,9 +5,10 @@
 # diff afterward like any other tracked-file change.
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 if ! command -v nvim >/dev/null 2>&1; then
-    echo "Neovim isn't installed — nothing to do."
+    ok "Neovim isn't installed — nothing to do."
     exit 0
 fi
 

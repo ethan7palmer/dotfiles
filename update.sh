@@ -10,15 +10,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 source lib/stages.sh
-
-if [ -t 1 ] && command -v tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
-    BOLD="$(tput bold)"
-    RESET="$(tput sgr0)"
-    CYAN="$(tput setaf 6)"
-    GREEN="$(tput setaf 2)"
-else
-    BOLD="" RESET="" CYAN="" GREEN=""
-fi
+source lib/colors.sh
 
 # ---------------------------------------------------------------------------
 # Options
@@ -53,7 +45,7 @@ EOF
             valid="$(all_stage_ids updates)"
             for id in ${raw//,/ }; do
                 if ! grep -qx "${id}" <<<"${valid}"; then
-                    echo "Unknown stage for --skip: ${id}" >&2
+                    err "Unknown stage for --skip: ${id}"
                     echo "Valid stages: $(echo "${valid}" | paste -sd, -)" >&2
                     exit 1
                 fi
@@ -64,7 +56,7 @@ EOF
             INTERACTIVE_SKIP=true
             ;;
         *)
-            echo "Unknown option: ${arg}" >&2
+            err "Unknown option: ${arg}"
             echo "Run './update.sh --help' for usage." >&2
             exit 1
             ;;
@@ -88,7 +80,7 @@ for id in $(all_stage_ids updates); do
 done
 
 if [ ${#run[@]} -eq 0 ]; then
-    echo "Every stage is skipped — nothing to do."
+    ok "Every stage is skipped — nothing to do."
     exit 0
 fi
 
@@ -108,7 +100,7 @@ esac
 for script in updates/*.sh; do
     skipped "$(stage_id "${script}")" && continue
     echo
-    echo "${BOLD}${CYAN}==> ${script}${RESET}"
+    echo "${ORANGE}==> ${script}${RESET}"
     bash "${script}"
 done
 

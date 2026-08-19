@@ -5,6 +5,7 @@
 # vendor-correct apt source, not a snap or a shell-script installer.
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 PACKAGES=(
     docker-ce
@@ -22,7 +23,7 @@ for pkg in "${PACKAGES[@]}"; do
 done
 
 if [ ${#missing[@]} -eq 0 ]; then
-    echo "Docker already installed — nothing to do."
+    ok "Docker already installed — nothing to do."
 else
     KEYRING="/etc/apt/keyrings/docker.asc"
     SOURCES_LIST="/etc/apt/sources.list.d/docker.list"
@@ -33,24 +34,24 @@ else
     sudo install -d -m 0755 /etc/apt/keyrings
 
     if [ ! -s "${KEYRING}" ]; then
-        echo "Downloading the Docker signing key..."
+        change "Downloading the Docker signing key..."
         sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o "${KEYRING}"
         sudo chmod a+r "${KEYRING}"
     fi
 
     if [ ! -f "${SOURCES_LIST}" ] || ! grep -qxF "${REPO_LINE}" "${SOURCES_LIST}"; then
-        echo "Registering the Docker apt repository..."
+        change "Registering the Docker apt repository..."
         echo "${REPO_LINE}" | sudo tee "${SOURCES_LIST}" >/dev/null
     fi
 
-    echo "Installing: ${missing[*]}"
+    change "Installing: ${missing[*]}"
     sudo apt update
     sudo apt install -y "${missing[@]}"
 fi
 
 if id -nG "${USER}" | grep -qw docker; then
-    echo "${USER} already in the docker group — nothing to do."
+    ok "${USER} already in the docker group — nothing to do."
 else
-    echo "Adding ${USER} to the docker group..."
+    change "Adding ${USER} to the docker group..."
     sudo usermod -aG docker "${USER}"
 fi

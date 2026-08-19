@@ -5,11 +5,12 @@
 # .bashrc/.zshrc/git config) is a separate, not-yet-written stage.
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 if command -v vim >/dev/null 2>&1; then
-    echo "vim already installed — nothing to do."
+    ok "vim already installed — nothing to do."
 else
-    echo "Installing vim..."
+    change "Installing vim..."
     sudo apt update
     sudo apt install -y vim
 fi

@@ -21,6 +21,7 @@
 # (the OS has to ask).
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 # ---------------------------------------------------------------------------
 # Handy itself: latest .deb release, verified against Handy's minisign
@@ -28,12 +29,12 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 if dpkg -s handy >/dev/null 2>&1; then
-    echo "Handy already installed — nothing to do."
+    ok "Handy already installed — nothing to do."
 else
-    echo "Installing Handy..."
+    change "Installing Handy..."
 
     if ! dpkg -s minisign >/dev/null 2>&1; then
-        echo "Installing minisign (used to verify Handy's release signature)..."
+        change "Installing minisign (used to verify Handy's release signature)..."
         sudo apt update
         sudo apt install -y minisign
     fi
@@ -57,10 +58,10 @@ else
     # "Verify Release Signatures".
     base64 -d "${TMP_DIR}/${DEB_NAME}.sig" >"${TMP_DIR}/${DEB_NAME}.minisig"
 
-    echo "Verifying signature..."
+    change "Verifying signature..."
     minisign -Vm "${TMP_DIR}/${DEB_NAME}" -p "${TMP_DIR}/handy.pub" -x "${TMP_DIR}/${DEB_NAME}.minisig"
 
-    echo "Installing ${DEB_NAME}..."
+    change "Installing ${DEB_NAME}..."
     sudo apt install -y "${TMP_DIR}/${DEB_NAME}"
 fi
 
@@ -72,22 +73,22 @@ fi
 # ---------------------------------------------------------------------------
 
 if ! dpkg -s ydotool >/dev/null 2>&1; then
-    echo "Installing ydotool..."
+    change "Installing ydotool..."
     sudo apt update
     sudo apt install -y ydotool
 fi
 
 if id -nG "${USER}" | grep -qw input; then
-    echo "${USER} already in the input group — nothing to do."
+    ok "${USER} already in the input group — nothing to do."
 else
-    echo "Adding ${USER} to the input group (needed for ydotoold to reach /dev/uinput)..."
+    change "Adding ${USER} to the input group (needed for ydotoold to reach /dev/uinput)..."
     sudo usermod -aG input "${USER}"
 fi
 
 if systemctl --user is-enabled ydotool.service >/dev/null 2>&1; then
-    echo "ydotool.service already enabled — nothing to do."
+    ok "ydotool.service already enabled — nothing to do."
 else
-    echo "Enabling ydotool.service..."
+    change "Enabling ydotool.service..."
     systemctl --user enable ydotool.service
 fi
 
@@ -135,15 +136,15 @@ mkdir -p "${HANDY_MODELS_DIR}"
 
 MODEL_PATH="${HANDY_MODELS_DIR}/${MODEL_FILENAME}"
 if [ -f "${MODEL_PATH}" ] && echo "${MODEL_SHA256}  ${MODEL_PATH}" | sha256sum -c - >/dev/null 2>&1; then
-    echo "Default model already downloaded — nothing to do."
+    ok "Default model already downloaded — nothing to do."
 else
-    echo "Downloading default model (${MODEL_FILENAME}, ~700MB)..."
+    change "Downloading default model (${MODEL_FILENAME}, ~700MB)..."
     curl -fsSL "${MODEL_URL}" -o "${MODEL_PATH}"
     echo "${MODEL_SHA256}  ${MODEL_PATH}" | sha256sum -c -
 fi
 
 if [ ! -f "${HANDY_SETTINGS}" ]; then
-    echo "Seeding ${HANDY_SETTINGS}..."
+    change "Seeding ${HANDY_SETTINGS}..."
     # Nested under "settings" — that's the literal store key Handy's Rust
     # code writes to (src-tauri/src/settings.rs: store.set("settings", ...)),
     # not a flat top-level object. Confirmed against the key tauri-plugin-store
@@ -160,7 +161,7 @@ else
     current_model="$(jq -r '.settings.selected_model // ""' "${HANDY_SETTINGS}")"
     if [ "${current_audio}" = "true" ] && [ "${current_volume}" = "${AUDIO_FEEDBACK_VOLUME}" ] \
         && [ "${current_autostart}" = "true" ] && [ "${current_start_hidden}" = "true" ] && [ -n "${current_model}" ]; then
-        echo "Handy preferences already set — nothing to do."
+        ok "Handy preferences already set — nothing to do."
     else
         # Handy loads this file into memory on launch and periodically
         # writes its own in-memory copy back to disk. Editing it on disk
@@ -168,7 +169,7 @@ else
         # silently overwrites this edit with its stale in-memory state.
         # Stop it first (if it's up) so the change actually sticks.
         if pgrep -x handy >/dev/null 2>&1; then
-            echo "Stopping the running Handy instance to edit its settings safely..."
+            change "Stopping the running Handy instance to edit its settings safely..."
             pkill -x handy || true
             for _ in $(seq 1 20); do
                 pgrep -x handy >/dev/null 2>&1 || break
@@ -176,7 +177,7 @@ else
             done
         fi
 
-        echo "Updating ${HANDY_SETTINGS}..."
+        change "Updating ${HANDY_SETTINGS}..."
         jq --arg model "${MODEL_ID}" --argjson volume "${AUDIO_FEEDBACK_VOLUME}" '
             .settings.audio_feedback = true |
             .settings.audio_feedback_volume = $volume |
@@ -202,7 +203,7 @@ KEYBINDING_SCHEMA="${KEYBINDINGS_SCHEMA}.custom-keybinding:${KEYBINDING_PATH}"
 
 current_list="$(gsettings get "${KEYBINDINGS_SCHEMA}" custom-keybindings)"
 if [[ "${current_list}" != *"${KEYBINDING_PATH}"* ]]; then
-    echo "Registering Handy custom keybinding..."
+    change "Registering Handy custom keybinding..."
     if [ "${current_list}" = "@as []" ]; then
         new_list="['${KEYBINDING_PATH}']"
     else
@@ -225,11 +226,11 @@ gsettings set "${KEYBINDING_SCHEMA}" binding "<Control><Alt>space"
 # ---------------------------------------------------------------------------
 
 if pgrep -x handy >/dev/null 2>&1; then
-    echo "Handy is running — nothing to do."
+    ok "Handy is running — nothing to do."
 else
-    echo "Starting Handy..."
+    change "Starting Handy..."
     nohup /usr/bin/handy --start-hidden >/dev/null 2>&1 &
     disown
 fi
 
-echo "Handy setup complete."
+ok "Handy setup complete."

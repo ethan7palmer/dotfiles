@@ -5,11 +5,12 @@
 # home/.config/nvim -> ~/.config/nvim, etc), so this is one `stow` call.
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 cd "$(dirname "$0")/.."
 
 if [ ! -d home ]; then
-    echo "No home/ package yet — nothing to stow."
+    ok "No home/ package yet — nothing to stow."
     exit 0
 fi
 
@@ -27,7 +28,7 @@ while IFS= read -r -d '' src; do
     rel="${src#home/}"
     target="${HOME}/${rel}"
     if [ -e "${target}" ] && [ "$(readlink -f "${target}")" != "$(readlink -f "${src}")" ]; then
-        echo "Backing up existing ${target} -> ${target}.pre-stow-backup"
+        warn "Backing up existing ${target} -> ${target}.pre-stow-backup"
         mv "${target}" "${target}.pre-stow-backup"
     fi
 done < <(find home -type f -print0)

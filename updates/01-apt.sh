@@ -6,6 +6,7 @@
 # installed (e.g. a stage left out with install.sh's --skip).
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 PACKAGES=(
     curl wget stow gnupg ca-certificates software-properties-common
@@ -29,7 +30,7 @@ for pkg in "${PACKAGES[@]}"; do
 done
 
 if [ ${#installed[@]} -eq 0 ]; then
-    echo "None of this repo's apt packages are installed — nothing to do."
+    ok "None of this repo's apt packages are installed — nothing to do."
     exit 0
 fi
 

@@ -4,6 +4,7 @@
 # tools used across configs (ripgrep/fd for Neovim's fuzzy pickers).
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 PACKAGES=(
     curl
@@ -25,9 +26,9 @@ for pkg in "${PACKAGES[@]}"; do
 done
 
 if [ ${#missing[@]} -eq 0 ]; then
-    echo "All prerequisites already installed."
+    ok "All prerequisites already installed."
 else
-    echo "Installing: ${missing[*]}"
+    change "Installing: ${missing[*]}"
     sudo apt update
     sudo apt install -y "${missing[@]}"
 fi

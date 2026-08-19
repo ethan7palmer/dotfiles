@@ -5,11 +5,12 @@
 # only ensures zinit itself is present so that file's zinit bootstrap works.
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 if command -v zsh >/dev/null 2>&1; then
-    echo "zsh already installed — nothing to do."
+    ok "zsh already installed — nothing to do."
 else
-    echo "Installing zsh..."
+    change "Installing zsh..."
     sudo apt update
     sudo apt install -y zsh
 fi
@@ -21,18 +22,18 @@ ZSH_PATH="$(command -v zsh)"
 # every time. Read the actual current passwd entry instead.
 CURRENT_SHELL="$(getent passwd "${USER}" | cut -d: -f7)"
 if [ "${CURRENT_SHELL}" = "${ZSH_PATH}" ]; then
-    echo "Default shell is already zsh — nothing to do."
+    ok "Default shell is already zsh — nothing to do."
 else
-    echo "Changing default shell to ${ZSH_PATH}..."
+    change "Changing default shell to ${ZSH_PATH}..."
     # Run as root so this doesn't prompt for the user's own password.
     sudo chsh -s "${ZSH_PATH}" "${USER}"
 fi
 
 ZINIT_HOME="${HOME}/.local/share/zinit/zinit.git"
 if [ -d "${ZINIT_HOME}" ]; then
-    echo "zinit already installed — nothing to do."
+    ok "zinit already installed — nothing to do."
 else
-    echo "Installing zinit..."
+    change "Installing zinit..."
     mkdir -p "$(dirname "${ZINIT_HOME}")"
     git clone https://github.com/zdharma-continuum/zinit.git "${ZINIT_HOME}"
 fi

@@ -6,10 +6,11 @@
 # no apt package or standalone binary for either.
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 ZINIT_HOME="${HOME}/.local/share/zinit/zinit.git"
 if [ ! -d "${ZINIT_HOME}" ]; then
-    echo "zinit isn't installed — nothing to do."
+    ok "zinit isn't installed — nothing to do."
     exit 0
 fi
 

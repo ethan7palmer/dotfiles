@@ -8,6 +8,7 @@
 # reviewable in a diff, and independently reversible with `gsettings reset`.
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 # Only prints/changes anything if the current value differs - safe to re-run.
 # Numeric values (e.g. mouse speed, a double) are compared numerically, since
@@ -25,7 +26,7 @@ set_gsetting() {
             return
         fi
     fi
-    echo "Setting ${schema} ${key} -> ${value}"
+    change "Setting ${schema} ${key} -> ${value}"
     gsettings set "$schema" "$key" "$value"
 }
 
@@ -33,7 +34,7 @@ set_gsetting() {
 # machine's first run - included so a fresh machine doesn't need that
 # manual step).
 if [ "$(xdg-settings get default-web-browser 2>/dev/null)" != "google-chrome.desktop" ]; then
-    echo "Setting default-web-browser -> google-chrome.desktop"
+    change "Setting default-web-browser -> google-chrome.desktop"
     xdg-settings set default-web-browser google-chrome.desktop
 fi
 
@@ -104,4 +105,4 @@ fi
 set_gsetting org.gnome.desktop.background picture-uri "'file://${CACHED}'"
 set_gsetting org.gnome.desktop.background picture-uri-dark "'file://${CACHED}'"
 
-echo "GNOME settings applied."
+ok "GNOME settings applied."

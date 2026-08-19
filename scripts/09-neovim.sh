@@ -4,11 +4,12 @@
 # not written yet — added once there's an actual config to ship.
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 if command -v nvim >/dev/null 2>&1; then
-    echo "neovim already installed — nothing to do."
+    ok "neovim already installed — nothing to do."
 else
-    echo "Installing neovim..."
+    change "Installing neovim..."
     sudo apt update
     sudo apt install -y neovim
 fi

@@ -14,37 +14,29 @@ set -euo pipefail
 cd "$(dirname "$0")"
 source lib/stages.sh
 
-# ---------------------------------------------------------------------------
-# Output styling — only when stdout is an interactive terminal that supports
-# color, so redirecting output to a log file stays plain, readable text.
-# ---------------------------------------------------------------------------
+source lib/colors.sh
 
-if [ -t 1 ] && command -v tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
-    BOLD="$(tput bold)"
-    RESET="$(tput sgr0)"
-    CYAN="$(tput setaf 6)"
-    GREEN="$(tput setaf 2)"
-    YELLOW="$(tput setaf 3)"
-else
-    BOLD="" RESET="" CYAN="" GREEN="" YELLOW=""
-fi
-
+# Two header tiers, two colors: BLUE for the 3 top-level phase banners,
+# ORANGE for every "-- Section" underneath one, so scrollback makes the
+# hierarchy obvious without having to read the box-drawing characters.
 phase() {
     echo
-    echo "${BOLD}${GREEN}════════════════════════════════════════════════════════${RESET}"
-    echo "${BOLD}${GREEN}  $1${RESET}"
-    echo "${BOLD}${GREEN}════════════════════════════════════════════════════════${RESET}"
+    echo "${BLUE}════════════════════════════════════════════════════════${RESET}"
+    echo "${BLUE}  $1${RESET}"
+    echo "${BLUE}════════════════════════════════════════════════════════${RESET}"
 }
 
 section() {
     echo
-    echo "${BOLD}${CYAN}-- $1${RESET}"
+    echo "${ORANGE}-- $1${RESET}"
 }
 
 # A highlighted, single-line call to action - Phase 3 uses this so the one
 # thing you actually need to go do never gets lost in surrounding prose.
+# Magenta because it means something different from warn()'s yellow: this
+# isn't a heads-up, it's a to-do only you (not the script) can finish.
 action() {
-    echo "${BOLD}${YELLOW}-> $1${RESET}"
+    echo "${BOLD}${MAGENTA}-> $1${RESET}"
 }
 
 # ---------------------------------------------------------------------------
@@ -89,7 +81,7 @@ EOF
             valid="$(all_stage_ids scripts)"
             for id in ${raw//,/ }; do
                 if ! grep -qx "${id}" <<<"${valid}"; then
-                    echo "Unknown stage for --skip: ${id}" >&2
+                    err "Unknown stage for --skip: ${id}"
                     echo "Valid stages: $(echo "${valid}" | paste -sd, -)" >&2
                     exit 1
                 fi
@@ -100,7 +92,7 @@ EOF
             INTERACTIVE_SKIP=true
             ;;
         *)
-            echo "Unknown option: ${arg}" >&2
+            err "Unknown option: ${arg}"
             echo "Run './install.sh --help' for usage." >&2
             exit 1
             ;;
@@ -136,7 +128,7 @@ prompt_with_default() {
             printf '%s' "${reply}"
             return
         fi
-        echo "This can't be empty." >&2
+        warn "This can't be empty."
     done
 }
 
@@ -147,7 +139,7 @@ if ! skipped git-identity; then
     current_git_name="$(current_git_value user.name)"
     current_git_email="$(current_git_value user.email)"
     if [ -n "${current_git_name}" ] && [ -n "${current_git_email}" ] && [ "${FORCE_IDENTITY_PROMPT}" = false ]; then
-        echo "Using existing identity: ${current_git_name} <${current_git_email}>"
+        value "Using existing identity: ${current_git_name} <${current_git_email}>"
         echo "(run with --update-identity to change)"
         DOTFILES_GIT_NAME="${current_git_name}"
         DOTFILES_GIT_EMAIL="${current_git_email}"
@@ -170,7 +162,7 @@ if ! skipped ssh-key; then
     if [ -f "${SSH_KEY}.pub" ]; then
         current_comment="$(cut -d' ' -f3- "${SSH_KEY}.pub")"
         if [ "${FORCE_IDENTITY_PROMPT}" = false ]; then
-            echo "Using existing comment: ${current_comment}"
+            value "Using existing comment: ${current_comment}"
             echo "(run with --update-identity to change — this only relabels the"
             echo "key, it does NOT regenerate it)"
             DOTFILES_SSH_COMMENT="${current_comment}"
@@ -332,9 +324,15 @@ fi
 if ! skipped gh; then
     section "GitHub CLI (GitHub's own apt repo)"
     echo "Then \`gh auth login\` - the one interactive step in this whole"
-    echo "install. You'll approve a one-time code in a browser; the SSH key"
-    echo "above then gets uploaded to your GitHub account automatically, no"
-    echo "extra prompt, replacing the manual paste-it-in step below."
+    echo "install. You'll approve a one-time code in a browser, which gets"
+    echo "gh an OAuth token - used only for gh's own commands (gh pr create,"
+    echo "gh api, etc), completely separate from the SSH key above. gh then"
+    echo "uploads that SSH key to your GitHub account automatically (no"
+    echo "extra prompt) - that upload is what git itself actually uses for"
+    echo "any git@github.com:... remote. Plain git over https:// stays NOT"
+    echo "set up (no credential helper) - only SSH remotes and gh's own"
+    echo "commands will work after this; \`gh auth setup-git\` adds that, if"
+    echo "you ever need it."
 fi
 echo
 
@@ -357,7 +355,7 @@ phase "Phase 2/3 — Installing"
 for script in scripts/*.sh; do
     skipped "$(stage_id "${script}")" && continue
     echo
-    echo "${BOLD}${CYAN}==> ${script}${RESET}"
+    echo "${ORANGE}==> ${script}${RESET}"
     bash "${script}"
 done
 
@@ -403,46 +401,16 @@ if ! skipped handy && command -v handy >/dev/null 2>&1; then
     fi
 fi
 
-# Not just "logged in" - scripts/16-gh.sh's SSH key upload needs the
-# admin:public_key scope specifically, which a plain `gh auth login`
-# only grants if you go through its interactive SSH-key prompt (which
-# --skip-ssh-key deliberately turns off - see 16-gh.sh's own comment for
-# why). So a login can succeed and still leave the upload undone.
-gh_can_manage_keys() {
-    command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 &&
-        gh api -i user 2>/dev/null | grep -qi '^x-oauth-scopes:.*\badmin:public_key\b'
-}
-
-if ! skipped gh && command -v gh >/dev/null 2>&1 && ! gh_can_manage_keys; then
-    section "GitHub CLI"
-    if ! gh auth status >/dev/null 2>&1; then
-        action "Run: gh auth login --hostname github.com --git-protocol ssh \\"
-        action "  --web --skip-ssh-key --scopes admin:public_key"
-    else
-        action "Run: gh auth refresh --hostname github.com --scopes admin:public_key"
-    fi
-fi
-
-# Verified live, not just asserted - a stale "paste this in" reminder that
-# never re-checks reality is worse than no reminder at all. ssh -T always
-# exits 1 even on success (GitHub refuses shell access on purpose) - under
-# this script's pipefail that poisons a piped exit check regardless of
-# whether grep matched, so the output is captured into a variable first
-# and grepped separately instead of piping directly into grep.
-if ! skipped ssh-key && [ -f "${SSH_KEY}.pub" ]; then
+# scripts/16-gh.sh already handles auth (including the admin:public_key
+# scope) and verifies the SSH upload live, right as it happens - if that
+# ran this run, there's nothing left to check here. The only gap is if
+# the gh stage was skipped entirely, in which case the key was never
+# uploaded anywhere and still needs to go in by hand.
+if ! skipped ssh-key && skipped gh && [ -f "${SSH_KEY}.pub" ]; then
     section "SSH key"
-    ssh_check="$(ssh -T -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 \
-        git@github.com 2>&1 || true)"
-    if grep -q "successfully authenticated" <<<"${ssh_check}"; then
-        echo "Verified: git push/pull over SSH works."
-    elif gh_can_manage_keys; then
-        action "Couldn't verify SSH just now (network?) - try again:"
-        action "  ssh -T git@github.com"
-    else
-        action "Add this key at github.com -> Settings -> SSH and GPG keys:"
-        echo
-        echo "$(cat "${SSH_KEY}.pub")"
-    fi
+    action "Add this key at github.com -> Settings -> SSH and GPG keys:"
+    echo
+    echo "$(cat "${SSH_KEY}.pub")"
 fi
 
 # The Day 0 clone in this README uses https://, so pushing back to this repo
@@ -459,17 +427,4 @@ if ! skipped ssh-key && [ -f "${SSH_KEY}.pub" ] && [ "${origin_url#https://githu
     action "Run: git remote set-url origin ${ssh_url}"
 fi
 
-if ! skipped ssh-key || ! skipped gh; then
-    section "Git & GitHub, in short"
-    echo "SSH key -> what git uses for any remote whose URL starts with"
-    echo "git@github.com:... (see \"This repo's remote\" above for whether"
-    echo "this repo's does yet). OAuth token (gh auth login) -> unrelated -"
-    echo "only for the gh CLI's own commands (gh pr create, gh api, etc)."
-    echo "gh uploaded the SSH key to your account as a convenience during"
-    echo "login; that doesn't merge the two into one mechanism, it just"
-    echo "means both live on the same GitHub account. Plain git over"
-    echo "https:// is NOT set up (no credential helper) - only SSH remotes"
-    echo "and gh's own commands work right now. \`gh auth setup-git\` adds"
-    echo "that, if you ever need it."
-fi
 echo

@@ -7,6 +7,7 @@
 # Docs: https://herdr.dev/docs/install/, https://herdr.dev/docs/integrations/
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 resolve_herdr() {
     if command -v herdr >/dev/null 2>&1; then
@@ -19,13 +20,13 @@ resolve_herdr() {
 HERDR_BIN="$(resolve_herdr)"
 
 if [ -n "${HERDR_BIN}" ]; then
-    echo "herdr already installed at ${HERDR_BIN} — leaving it alone."
+    ok "herdr already installed at ${HERDR_BIN} — leaving it alone."
 else
-    echo "Installing herdr..."
+    change "Installing herdr..."
     curl -fsSL https://herdr.dev/install.sh | sh
     HERDR_BIN="$(resolve_herdr)"
     if [ -z "${HERDR_BIN}" ]; then
-        echo "ERROR: herdr was not found after installation." >&2
+        err "herdr was not found after installation."
         exit 1
     fi
 fi
@@ -35,8 +36,8 @@ fi
 # so re-runs don't redo that.
 HERDR_HOOK="${HOME}/.claude/hooks/herdr-agent-state.sh"
 if [ -f "${HERDR_HOOK}" ]; then
-    echo "herdr Claude Code integration already installed — nothing to do."
+    ok "herdr Claude Code integration already installed — nothing to do."
 else
-    echo "Installing herdr's Claude Code integration..."
+    change "Installing herdr's Claude Code integration..."
     "${HERDR_BIN}" integration install claude
 fi

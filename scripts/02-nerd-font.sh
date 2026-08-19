@@ -7,15 +7,16 @@
 # Docker/herdr. Installed user-locally (~/.local/share/fonts), no sudo.
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 FONT_DIR="${HOME}/.local/share/fonts"
 
 if [ -f "${FONT_DIR}/HackNerdFontMono-Regular.ttf" ]; then
-    echo "Hack Nerd Font Mono already installed — nothing to do."
+    ok "Hack Nerd Font Mono already installed — nothing to do."
     exit 0
 fi
 
-echo "Installing Hack Nerd Font Mono..."
+change "Installing Hack Nerd Font Mono..."
 
 FONT_URL="$(curl -fsSL https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest |
     jq -r '.assets[] | select(.name == "Hack.tar.xz") | .browser_download_url')"

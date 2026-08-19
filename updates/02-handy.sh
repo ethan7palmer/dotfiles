@@ -7,14 +7,15 @@
 # did: minisign-verified before `apt install`.
 #
 set -euo pipefail
+source "$(dirname "$0")/../lib/colors.sh"
 
 if ! dpkg -s handy >/dev/null 2>&1; then
-    echo "Handy isn't installed — nothing to do."
+    ok "Handy isn't installed — nothing to do."
     exit 0
 fi
 
 if ! dpkg -s minisign >/dev/null 2>&1; then
-    echo "Installing minisign (used to verify Handy's release signature)..."
+    change "Installing minisign (used to verify Handy's release signature)..."
     sudo apt update
     sudo apt install -y minisign
 fi
@@ -26,11 +27,11 @@ LATEST_VERSION="$(jq -r '.tag_name' <<<"${RELEASE_JSON}" | sed 's/^v//')"
 INSTALLED_VERSION="$(dpkg-query -W -f='${Version}' handy)"
 
 if [ "${LATEST_VERSION}" = "${INSTALLED_VERSION}" ]; then
-    echo "Handy ${INSTALLED_VERSION} is already the latest — nothing to do."
+    ok "Handy ${INSTALLED_VERSION} is already the latest — nothing to do."
     exit 0
 fi
 
-echo "Updating Handy ${INSTALLED_VERSION} -> ${LATEST_VERSION}..."
+change "Updating Handy ${INSTALLED_VERSION} -> ${LATEST_VERSION}..."
 
 DEB_URL="$(jq -r '.assets[] | select(.name | test("amd64\\.deb$")) | .browser_download_url' <<<"${RELEASE_JSON}")"
 SIG_URL="$(jq -r '.assets[] | select(.name | test("amd64\\.deb\\.sig$")) | .browser_download_url' <<<"${RELEASE_JSON}")"
@@ -48,7 +49,7 @@ base64 -d <<<"${HANDY_PUBKEY_B64}" >"${TMP_DIR}/handy.pub"
 # Signatures".
 base64 -d "${TMP_DIR}/${DEB_NAME}.sig" >"${TMP_DIR}/${DEB_NAME}.minisig"
 
-echo "Verifying signature..."
+change "Verifying signature..."
 minisign -Vm "${TMP_DIR}/${DEB_NAME}" -p "${TMP_DIR}/handy.pub" -x "${TMP_DIR}/${DEB_NAME}.minisig"
 
 # The new .deb takes effect on next launch, not for a copy of Handy
@@ -64,11 +65,11 @@ if pgrep -x handy >/dev/null 2>&1; then
     done
 fi
 
-echo "Installing ${DEB_NAME}..."
+change "Installing ${DEB_NAME}..."
 sudo apt install -y "${TMP_DIR}/${DEB_NAME}"
 
 if [ "${was_running}" = true ]; then
-    echo "Restarting Handy..."
+    change "Restarting Handy..."
     nohup /usr/bin/handy --start-hidden >/dev/null 2>&1 &
     disown
 fi
