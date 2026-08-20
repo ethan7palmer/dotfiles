@@ -41,3 +41,14 @@ else
     change "Installing herdr's Claude Code integration..."
     "${HERDR_BIN}" integration install claude
 fi
+
+# herdr doesn't watch config.toml for changes - a running server (i.e.
+# this is a re-run, not a fresh install) needs an explicit reload or it
+# keeps using whatever it read on last start, silently ignoring anything
+# just symlinked into place by the stow step above. A fresh install has
+# no server running yet, so there's nothing to reload here - it reads
+# the config fresh the first time it starts.
+if [ "$("${HERDR_BIN}" status server --json 2>/dev/null | jq -r '.running // false')" = "true" ]; then
+    change "Reloading herdr's running config..."
+    "${HERDR_BIN}" server reload-config >/dev/null
+fi

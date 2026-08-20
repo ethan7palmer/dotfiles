@@ -7,6 +7,10 @@ onboarding = false
 agent_panel_sort = "spaces"
 
 [keys]
+# home/.config/tmux/tmux.conf deliberately mirrors these key-for-key so
+# switching between herdr and tmux doesn't mean re-learning muscle
+# memory - change one, update the other to match (mux-keys in
+# home/.bash_aliases shows both at once).
 # chs:start
 prefix           = "ctrl+b"
 focus_pane_left  = "prefix+left"
@@ -20,4 +24,42 @@ new_tab          = "prefix+t"
 close_tab        = "prefix+c"
 goto             = "prefix+g"
 detach           = "prefix+q"
+zoom             = "prefix+z"
+close_workspace  = "prefix+shift+d"
 # chs:end
+
+# kill_all_workspaces: no built-in herdr action does this (close_workspace
+# above only ever targets one) - a custom command instead of a [keys]
+# entry, closing every workspace over herdr's own socket API, then
+# stopping the server itself so herdr actually closes instead of sitting
+# there empty - matching tmux's kill-server, which tears down the whole
+# server, not just its sessions. A popup so the confirmation is actually
+# visible and interactive; the prompt itself doesn't count as a
+# workspace, so it isn't killed mid-loop by its own command. Mirrored in
+# home/.config/tmux/tmux.conf as prefix+shift+k -> kill-server.
+#
+# Explicitly `bash -c` because herdr runs custom commands through
+# `/bin/sh`, which on Ubuntu is dash, not bash - dash has neither `[[ ]]`
+# nor `read`'s `-p`/`-n` flags, so under plain /bin/sh this failed
+# instantly (popup opened and closed within milliseconds, dash erroring
+# on `read: Illegal option -n` before a keypress was even possible).
+#
+# `read -n 1` on a bare Enter returns immediately with an empty $REPLY
+# (the newline itself isn't captured) - Escape or any other key leaves
+# $REPLY non-empty, so testing for empty is Enter-to-confirm/anything-
+# else-to-cancel, matching tmux's confirm-before -y for close_workspace.
+[[keys.command]]
+key = "prefix+shift+k"
+type = "popup"
+width = "60%"
+height = "20%"
+command = """
+bash -c '
+read -n 1 -s -r -p "Kill ALL workspaces? (Enter to confirm, Esc to cancel) "
+echo
+if [[ -z "$REPLY" ]]; then
+    herdr workspace list | jq -r ".result.workspaces[].workspace_id" | xargs -r -n1 herdr workspace close
+    herdr server stop
+fi
+'
+"""

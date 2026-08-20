@@ -55,7 +55,7 @@ ${BOLD}Usage:${RESET} ./install.sh [OPTIONS]
 
 Provisions this machine: prereqs, Kitty, Hack Nerd Font, Chrome, zsh,
 Starship, git identity, an SSH key, vim, Docker, Claude Code, herdr, Handy,
-the GitHub CLI, then symlinks home/ into \$HOME via GNU Stow. Safe to
+the GitHub CLI, tmux, then symlinks home/ into \$HOME via GNU Stow. Safe to
 re-run any time.
 
 ${BOLD}Options:${RESET}
@@ -334,6 +334,14 @@ if ! skipped gh; then
     echo "commands will work after this; \`gh auth setup-git\` adds that, if"
     echo "you ever need it."
 fi
+
+if ! skipped tmux; then
+    section "tmux (apt)"
+    echo "Terminal multiplexer, independent of herdr - skip either one, or"
+    echo "install both. Its keybindings (~/.config/tmux/tmux.conf) are"
+    echo "deliberately made to match herdr's, so switching between the two"
+    echo "doesn't mean re-learning muscle memory."
+fi
 echo
 
 reply=""
@@ -372,7 +380,9 @@ if ! skipped zsh; then
     case "$(getent passwd "${USER}" | cut -d: -f7)" in
         */zsh)
             section "Shell"
-            action "Open a new terminal - zsh won't apply to this one."
+            action "Open a new terminal - this one won't pick up zsh, or"
+            action "anything just changed in .zshrc/.bash_aliases (aliases,"
+            action "functions like herdr-keys/tmux-keys, etc)."
             ;;
     esac
 fi

@@ -22,6 +22,7 @@ PACKAGES=(
     minisign
     gh
     claude-code
+    tmux
 )
 
 installed=()
