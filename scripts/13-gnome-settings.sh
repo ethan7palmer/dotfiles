@@ -53,6 +53,15 @@ set_gsetting org.gnome.desktop.session idle-delay "uint32 0"
 set_gsetting org.gnome.desktop.peripherals.mouse accel-profile "'flat'"
 set_gsetting org.gnome.desktop.peripherals.mouse speed "-0.4"
 
+# Free up Ctrl+Alt+Up/Down (GNOME's default workspace-switching shortcut,
+# unused here - not the muscle memory this machine is set up for) so it
+# reaches apps instead - specifically home/.config/nvim's multicursor.nvim
+# keymaps, which GNOME was silently swallowing these two keys before ever
+# reaching Kitty. "@as []" is gsettings' own empty-array-of-strings
+# representation for an unbound shortcut.
+set_gsetting org.gnome.desktop.wm.keybindings switch-to-workspace-up "@as []"
+set_gsetting org.gnome.desktop.wm.keybindings switch-to-workspace-down "@as []"
+
 # Ubuntu Dock: bottom of the screen, shrunk to fit its icons (not stretched
 # the full width) rather than centering it manually, auto-hidden rather than
 # always reserving screen space.

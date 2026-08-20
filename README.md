@@ -3,7 +3,7 @@
 Personal provisioning repo for a fresh Ubuntu 26 machine. Clone it, run one
 script, and it turns a stock install into a fully configured dev machine —
 shell, terminal, editor, Docker, Git/SSH, Claude Code, voice dictation, and
-GNOME's appearance.
+GNOasdasE's appearance.
 
 ## Quick start
 
@@ -37,8 +37,9 @@ defaults: Ctrl+arrow jumps a word, Alt+Backspace stops at `/` instead of
 deleting a whole path.
 
 **Editor** — Neovim as the daily driver (lazy.nvim, which-key, a fuzzy
-file/text finder, Neogit + gitsigns with a legible add/change/delete color
-scheme, Rosé Pine Moon), plain `vim` with no configuration for quick edits.
+file/text finder, VSCode-style multi-cursor, Neogit + gitsigns with a
+legible add/change/delete color scheme, Rosé Pine Moon), plain `vim` with
+no configuration for quick edits.
 
 **Browser** — Google Chrome, set as the default browser. Launches with
 `--disable-features=Vulkan`: on an NVIDIA GPU under GNOME's default
@@ -179,7 +180,8 @@ setup — standard practice, not a special exception):
 - Neovim: [`folke/lazy.nvim`](https://github.com/folke/lazy.nvim) (pinned to
   its `stable` branch) → `rose-pine/neovim`, `folke/which-key.nvim`,
   `stevearc/oil.nvim`, `folke/snacks.nvim`, `NeogitOrg/neogit`,
-  `nvim-lua/plenary.nvim`, `sindrets/diffview.nvim`, `lewis6991/gitsigns.nvim`.
+  `nvim-lua/plenary.nvim`, `sindrets/diffview.nvim`, `lewis6991/gitsigns.nvim`,
+  `jake-stewart/multicursor.nvim`.
   All pinned to exact commits in `home/.config/nvim/lazy-lock.json`.
 
 **Worth flagging on its own: herdr.** It's the newest and least-established
