@@ -424,8 +424,10 @@ if ! skipped ssh-key && skipped gh && [ -f "${SSH_KEY}.pub" ]; then
 fi
 
 # The Day 0 clone in this README uses https://, so pushing back to this repo
-# will fail until the remote is switched to SSH — install.sh only sets up an
-# SSH key, not HTTPS credentials.
+# would fail until the remote is switched to SSH - install.sh only sets up
+# an SSH key, not HTTPS credentials. Deterministic, config-only, and
+# trivially reversible (git remote set-url origin <old-url>), so this
+# just does it rather than printing the command for you to run by hand.
 origin_url="$(git config --get remote.origin.url 2>/dev/null || true)"
 if ! skipped ssh-key && [ -f "${SSH_KEY}.pub" ] && [ "${origin_url#https://github.com/}" != "${origin_url}" ]; then
     ssh_url="git@github.com:${origin_url#https://github.com/}"
@@ -434,7 +436,8 @@ if ! skipped ssh-key && [ -f "${SSH_KEY}.pub" ] && [ "${origin_url#https://githu
         *) ssh_url="${ssh_url}.git" ;;
     esac
     section "This repo's remote"
-    action "Run: git remote set-url origin ${ssh_url}"
+    git remote set-url origin "${ssh_url}"
+    ok "Switched origin to ${ssh_url}"
 fi
 
 echo
