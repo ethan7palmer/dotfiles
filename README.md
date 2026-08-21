@@ -34,7 +34,10 @@ syntax highlighting, tab completion), Starship prompt, Kitty as the default
 terminal (Hack Nerd Font Mono, Rosé Pine Moon theme, a slightly transparent
 background, pink titlebar). A few muscle-memory fixes on top of zsh's
 defaults: Ctrl+arrow jumps a word, Alt+Backspace stops at `/` instead of
-deleting a whole path.
+deleting a whole path. tmux, independent of herdr below - install either
+one or both - with keybindings deliberately mirroring herdr's, so
+switching between them doesn't mean re-learning muscle memory (`mux-keys`
+shows both at once).
 
 **Editor** — Neovim as the daily driver (lazy.nvim, which-key, a fuzzy
 file/text finder, VSCode-style multi-cursor, Neogit + gitsigns with a
@@ -103,6 +106,7 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `14-herdr.sh` | herdr + Claude Code integration | vendor script |
 | `15-handy.sh` | Handy + default model + ydotool + its GNOME shortcut | signed GitHub release + apt (ydotool) |
 | `16-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
+| `17-tmux.sh` | tmux, keybindings mirroring herdr's | apt |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
@@ -143,7 +147,7 @@ warrants — useful if you need to get this approved for a work machine.
 
 **Ubuntu's own apt repos** (baseline OS trust): curl, wget, stow, gnupg,
 ca-certificates, software-properties-common, jq, ripgrep, fd-find, kitty,
-zsh, starship, vim, neovim, ydotool, minisign.
+zsh, starship, vim, neovim, ydotool, minisign, tmux.
 
 **Official vendor apt repos** (GPG-signed, each vendor's own documented
 setup — standard practice, not a special exception):
@@ -207,6 +211,7 @@ dotfiles/
     │   ├── nvim/            # Neovim config (see "What it sets up" above)
     │   ├── kitty/            # kitty.conf + theme.conf
     │   ├── herdr/config.toml
+    │   ├── tmux/tmux.conf   # keybindings mirroring herdr's, see both files' comments
     │   ├── starship.toml
     │   └── xdg-terminals.list   # makes Kitty the default terminal app
     ├── .local/share/
@@ -316,7 +321,7 @@ show that manual instruction.
 
 - Prefer the apt package for anything that has one. Never snap. Fall back to
   an official vendor install script only when no apt package exists (Hack
-  Nerd Font, Docker, herdr, Handy), verifying a cryptographic signature
-  before install wherever the vendor publishes one (Handy).
+  Nerd Font, herdr, Handy), verifying a cryptographic signature before
+  install wherever the vendor publishes one (Handy).
 - No secrets in the repo — SSH keys and git identity are generated/entered
   on the target machine, not shipped here.

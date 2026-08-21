@@ -420,7 +420,7 @@ if ! skipped ssh-key && skipped gh && [ -f "${SSH_KEY}.pub" ]; then
     section "SSH key"
     action "Add this key at github.com -> Settings -> SSH and GPG keys:"
     echo
-    echo "$(cat "${SSH_KEY}.pub")"
+    cat "${SSH_KEY}.pub"
 fi
 
 # The Day 0 clone in this README uses https://, so pushing back to this repo
