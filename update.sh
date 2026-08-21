@@ -87,6 +87,12 @@ fi
 echo "${BOLD}Will update:${RESET} ${run[*]}"
 [ ${#skip[@]} -gt 0 ] && echo "${BOLD}Skipping:${RESET} ${skip[*]}"
 
+if ! skipped apt; then
+    echo "(apt bundles every plain apt package this repo installs - kitty,"
+    echo "chrome, docker, gh, claude-code, tmux, python, nodejs, java, etc -"
+    echo "into one batched check, not a single package - see updates/01-apt.sh)"
+fi
+
 reply=""
 read -r -p "Continue? [Y/n] " reply || true
 case "$(printf '%s' "$reply" | tr '[:upper:]' '[:lower:]')" in
