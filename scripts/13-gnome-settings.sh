@@ -51,7 +51,7 @@ set_gsetting org.gnome.desktop.session idle-delay "uint32 0"
 # constant scaling derived from the speed value below, rather than
 # speed-dependent acceleration).
 set_gsetting org.gnome.desktop.peripherals.mouse accel-profile "'flat'"
-set_gsetting org.gnome.desktop.peripherals.mouse speed "-0.4"
+set_gsetting org.gnome.desktop.peripherals.mouse speed "-0.5"
 
 # Free up Ctrl+Alt+Up/Down (GNOME's default workspace-switching shortcut,
 # unused here - not the muscle memory this machine is set up for) so it

@@ -62,6 +62,14 @@ source "${ZINIT_HOME}/zinit.zsh"
 zinit light zsh-users/zsh-autosuggestions
 zinit light zsh-users/zsh-syntax-highlighting
 
+# Tab completion ignores dotfiles/dot-directories by default (matching
+# glob behavior) unless what you've typed so far already starts with a
+# literal "." - e.g. `cd home/<Tab>` finds nothing in a directory that
+# holds only dotfiles, like this repo's own home/. GLOB_DOTS makes
+# completion (and globs generally) consider dotfiles unless explicitly
+# excluded, same as always passing `-A`/`ls -a`.
+setopt GLOB_DOTS
+
 # zsh's completion system (the thing that makes `cd <Tab>` list directories,
 # and gives command-aware completion generally) isn't active until this
 # runs — without it, Tab falls back to much more limited behavior.
