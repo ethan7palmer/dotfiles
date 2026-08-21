@@ -213,7 +213,7 @@ dotfiles/
     │   ├── backgrounds/wallpaper.jpg   # desktop background
     │   └── applications/google-chrome.desktop   # adds --disable-features=Vulkan
     ├── .claude/               # CLAUDE.md + settings.json
-    ├── .zshrc / .bashrc / .bash_aliases
+    ├── .zshrc / .bashrc / .bash_aliases / .bash_functions
     ├── .gitconfig / .gitignore_global
 ```
 

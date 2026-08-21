@@ -49,8 +49,11 @@ setopt HIST_IGNORE_SPACE
 
 # Shared with bash: `alias name=value` syntax is identical in both shells,
 # so home/.bash_aliases is the single source of truth for both rather than
-# keeping two copies in sync by hand.
+# keeping two copies in sync by hand. home/.bash_functions is its
+# counterpart for actual shell functions, kept out of .bash_aliases so
+# that file stays a quick, skimmable list of plain aliases.
 [ -f "$HOME/.bash_aliases" ] && source "$HOME/.bash_aliases"
+[ -f "$HOME/.bash_functions" ] && source "$HOME/.bash_functions"
 
 # zinit bootstrap — matches the install path scripts/03-zsh.sh clones to.
 # https://github.com/zdharma-continuum/zinit

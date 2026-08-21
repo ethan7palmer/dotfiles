@@ -87,10 +87,16 @@ fi
 #
 # ~/.bash_aliases is also sourced from ~/.zshrc — it's the shared source of
 # truth for both shells (alias syntax is identical), not bash-only despite
-# the name.
+# the name. ~/.bash_functions is its counterpart for actual shell
+# functions, kept out of ~/.bash_aliases so that file stays a quick,
+# skimmable list of plain aliases.
 
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
+fi
+
+if [ -f ~/.bash_functions ]; then
+    . ~/.bash_functions
 fi
 
 # enable programmable completion features (you don't need to enable

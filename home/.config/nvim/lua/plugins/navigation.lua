@@ -50,6 +50,8 @@ return {
                         { text = ':undolist         list undo history states (jump to one with :u {N})      [Ex]' },
                         { text = ':pwd              print the current directory                             [Ex]' },
                         { text = ':cd /path/to      change the current directory                            [Ex]' },
+                        { text = ':Ex               open netrw (built-in file explorer) here                [Ex]' },
+                        { text = ':Rex              return to the last netrw window                         [Ex]' },
                         { text = '── Search ──' },
                         { text = '/pattern          search forward in the file                          [Normal]' },
                         { text = '?pattern          search backward in the file                         [Normal]' },
