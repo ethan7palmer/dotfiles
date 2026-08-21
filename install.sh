@@ -4,8 +4,10 @@
 #
 #   Phase 1 — interactive pre-flight (summary + explicit confirmation)
 #   Phase 2 — unattended execution of scripts/*.sh in numeric order, except
-#             16-gh.sh's one-time gh auth login browser approval - the only
-#             script here that can't be made fully unattended
+#             20-gh.sh's one-time gh auth login browser approval - the only
+#             script here that can't be made fully unattended, which is
+#             exactly why it's numbered last: every fully-automated stage
+#             runs first, so this is the only point you need to be present
 #   Phase 3 — reference: what to know / do, printed every run (not just the
 #             first) so it's easy to glance at again later
 #
@@ -55,8 +57,9 @@ ${BOLD}Usage:${RESET} ./install.sh [OPTIONS]
 
 Provisions this machine: prereqs, Kitty, Hack Nerd Font, Chrome, zsh,
 Starship, git identity, an SSH key, vim, Docker, Claude Code, herdr, Handy,
-the GitHub CLI, tmux, then symlinks home/ into \$HOME via GNU Stow. Safe to
-re-run any time.
+tmux, Python, Node.js, Java, the GitHub CLI (last - the one interactive
+step), then symlinks home/ into \$HOME via GNU Stow. Safe to re-run any
+time.
 
 ${BOLD}Options:${RESET}
   --update-identity   Re-prompt for git user.name/user.email and the SSH
@@ -321,26 +324,49 @@ if ! skipped handy; then
     echo "it's done."
 fi
 
-if ! skipped gh; then
-    section "GitHub CLI (GitHub's own apt repo)"
-    echo "Then \`gh auth login\` - the one interactive step in this whole"
-    echo "install. You'll approve a one-time code in a browser, which gets"
-    echo "gh an OAuth token - used only for gh's own commands (gh pr create,"
-    echo "gh api, etc), completely separate from the SSH key above. gh then"
-    echo "uploads that SSH key to your GitHub account automatically (no"
-    echo "extra prompt) - that upload is what git itself actually uses for"
-    echo "any git@github.com:... remote. Plain git over https:// stays NOT"
-    echo "set up (no credential helper) - only SSH remotes and gh's own"
-    echo "commands will work after this; \`gh auth setup-git\` adds that, if"
-    echo "you ever need it."
-fi
-
 if ! skipped tmux; then
     section "tmux (apt)"
     echo "Terminal multiplexer, independent of herdr - skip either one, or"
     echo "install both. Its keybindings (~/.config/tmux/tmux.conf) are"
     echo "deliberately made to match herdr's, so switching between the two"
     echo "doesn't mean re-learning muscle memory."
+fi
+
+if ! skipped python; then
+    section "Python (apt)"
+    echo "python3, python3-venv, python3-pip, and pipx - the recommended way"
+    echo "to install Python CLI tools in their own isolated environment"
+    echo "instead of the system interpreter, which apt/Ubuntu now blocks"
+    echo "plain \`pip install\` on outside a venv."
+fi
+
+if ! skipped nodejs; then
+    section "Node.js (apt, via NodeSource's own signed repository)"
+    echo "Adds NodeSource's signing key to /etc/apt/keyrings, registers its"
+    echo "current-LTS repository in /etc/apt/sources.list.d, then installs"
+    echo "\`nodejs\` (npm comes bundled with it)."
+fi
+
+if ! skipped java; then
+    section "Java (apt)"
+    echo "A JDK (current LTS) and Maven, straight from Ubuntu's own apt - no"
+    echo "vendor repo needed for OpenJDK. No system-wide Gradle: most"
+    echo "projects vendor their own pinned Gradle Wrapper instead."
+fi
+
+if ! skipped gh; then
+    section "GitHub CLI (GitHub's own apt repo)"
+    echo "Then \`gh auth login\` - the one interactive step in this whole"
+    echo "install, numbered last so it's the only thing you need to be at"
+    echo "the keyboard for. You'll approve a one-time code in a browser,"
+    echo "which gets gh an OAuth token - used only for gh's own commands"
+    echo "(gh pr create, gh api, etc), completely separate from the SSH key"
+    echo "above. gh then uploads that SSH key to your GitHub account"
+    echo "automatically (no extra prompt) - that upload is what git itself"
+    echo "actually uses for any git@github.com:... remote. Plain git over"
+    echo "https:// stays NOT set up (no credential helper) - only SSH"
+    echo "remotes and gh's own commands will work after this; \`gh auth"
+    echo "setup-git\` adds that, if you ever need it."
 fi
 echo
 
@@ -411,7 +437,7 @@ if ! skipped handy && command -v handy >/dev/null 2>&1; then
     fi
 fi
 
-# scripts/16-gh.sh already handles auth (including the admin:public_key
+# scripts/20-gh.sh already handles auth (including the admin:public_key
 # scope) and verifies the SSH upload live, right as it happens - if that
 # ran this run, there's nothing left to check here. The only gap is if
 # the gh stage was skipped entirely, in which case the key was never

@@ -59,6 +59,18 @@ manual step this repo can't otherwise automate.
 
 **Docker** — Docker CE, with your user added to the `docker` group.
 
+**Python** — python3, python3-venv, python3-pip, and pipx, for installing
+CLI tools like `black`/`poetry`/`ruff` in their own isolated environment
+(the recommended approach now that apt/Ubuntu's system Python refuses
+`pip install` outside a venv).
+
+**Node.js** — current LTS + npm, from NodeSource's own signed apt repo
+(Ubuntu's own package lags upstream by entire major versions).
+
+**Java** — a JDK (current LTS) + Maven, both straight from Ubuntu's own
+apt - OpenJDK doesn't need a vendor repo the way Node does. No system-wide
+Gradle: most projects vendor their own pinned Gradle Wrapper instead.
+
 **Claude Code & herdr** — Anthropic's CLI, plus herdr (a session
 sidebar/manager) wired up with native Claude Code session awareness.
 
@@ -105,14 +117,18 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `13-gnome-settings.sh` | The desktop tweaks described above | — |
 | `14-herdr.sh` | herdr + Claude Code integration | vendor script |
 | `15-handy.sh` | Handy + default model + ydotool + its GNOME shortcut | signed GitHub release + apt (ydotool) |
-| `16-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
-| `17-tmux.sh` | tmux, keybindings mirroring herdr's | apt |
+| `16-tmux.sh` | tmux, keybindings mirroring herdr's | apt |
+| `17-python.sh` | python3 + python3-venv + python3-pip + pipx | apt |
+| `18-nodejs.sh` | Node.js (current LTS) + npm | vendor apt repo |
+| `19-java.sh` | OpenJDK (current LTS) + Maven | apt |
+| `20-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
-already-installed package. `16-gh.sh` is the one exception to "safe to
-walk away during Phase 2": until `gh` is authenticated, it needs you at
-the keyboard for a one-time browser approval - see "A couple of
+already-installed package. `20-gh.sh` is numbered last and is the one
+exception to "safe to walk away during Phase 2": until `gh` is
+authenticated, it needs you at the keyboard for a one-time browser
+approval - see "A couple of
 deliberate design choices" below.
 
 ## Updating
@@ -147,7 +163,8 @@ warrants — useful if you need to get this approved for a work machine.
 
 **Ubuntu's own apt repos** (baseline OS trust): curl, wget, stow, gnupg,
 ca-certificates, software-properties-common, jq, ripgrep, fd-find, kitty,
-zsh, starship, vim, neovim, ydotool, minisign, tmux.
+zsh, starship, vim, neovim, ydotool, minisign, tmux, python3,
+python3-venv, python3-pip, pipx, openjdk-25-jdk, maven.
 
 **Official vendor apt repos** (GPG-signed, each vendor's own documented
 setup — standard practice, not a special exception):
@@ -156,6 +173,8 @@ setup — standard practice, not a special exception):
 - Claude Code — `downloads.claude.ai`, Anthropic's own repo
 - GitHub CLI (`gh`) — `cli.github.com`, GitHub's own repo (used instead of
   Ubuntu's `universe` package, which lags upstream by dozens of versions)
+- Node.js — `deb.nodesource.com`, NodeSource's own repo (same reasoning
+  as `gh` - Ubuntu's own package lags upstream by entire major versions)
 
 **Direct downloads / vendor scripts** (no apt package exists):
 - Hack Nerd Font Mono — a font tarball from `ryanoasis/nerd-fonts`'s GitHub
@@ -302,11 +321,14 @@ its own copy back to disk, the script also stops any running Handy
 instance before editing the file and restarts it after — editing it live
 underneath a running instance loses the edit to Handy's next autosave.
 
-**`16-gh.sh` is the one script here that isn't fully unattended, on
-purpose.** `gh auth login`'s OAuth flow needs a human to approve a
-one-time code in a browser — that's GitHub's actual security control
-proving this machine is really you, so there's no way to script around
-it existing at all. Everything else about it is automated, though:
+**`20-gh.sh` is the one script here that isn't fully unattended, on
+purpose - and is numbered last because of it.** `gh auth login`'s OAuth
+flow needs a human to approve a one-time code in a browser — that's
+GitHub's actual security control proving this machine is really you, so
+there's no way to script around it existing at all. Running it last
+means every fully-automated stage finishes first, so this is the only
+point in the whole install you need to be at the keyboard for. Everything
+else about it is automated, though:
 `gh auth login` runs with `--skip-ssh-key` to turn off its own
 interactive "upload this key?" prompt, and the script instead calls
 `gh ssh-key add` directly right after — confirmed against a real account

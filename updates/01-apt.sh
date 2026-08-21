@@ -23,6 +23,9 @@ PACKAGES=(
     gh
     claude-code
     tmux
+    python3 python3-venv python3-pip pipx
+    nodejs
+    openjdk-25-jdk maven
 )
 
 installed=()
