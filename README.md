@@ -3,7 +3,7 @@
 Personal provisioning repo for a fresh Ubuntu 26 machine. Clone it, run one
 script, and it turns a stock install into a fully configured dev machine —
 shell, terminal, editor, Docker, Git/SSH, Claude Code, voice dictation, and
-GNOasdasE's appearance.
+GNOME's appearance.
 
 ## Quick start
 
