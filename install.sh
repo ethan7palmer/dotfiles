@@ -4,7 +4,7 @@
 #
 #   Phase 1 — interactive pre-flight (summary + explicit confirmation)
 #   Phase 2 — unattended execution of scripts/*.sh in numeric order, except
-#             20-gh.sh's one-time gh auth login browser approval - the only
+#             21-gh.sh's one-time gh auth login browser approval - the only
 #             script here that can't be made fully unattended, which is
 #             exactly why it's numbered last: every fully-automated stage
 #             runs first, so this is the only point you need to be present
@@ -57,7 +57,7 @@ ${BOLD}Usage:${RESET} ./install.sh [OPTIONS]
 
 Provisions this machine: prereqs, Kitty, Hack Nerd Font, Chrome, zsh,
 Starship, git identity, an SSH key, vim, Docker, Claude Code, herdr, Handy,
-tmux, Python, Node.js, Java, the GitHub CLI (last - the one interactive
+tmux, Python, Node.js, Java, VLC, the GitHub CLI (last - the one interactive
 step), then symlinks home/ into \$HOME via GNU Stow. Safe to re-run any
 time.
 
@@ -354,6 +354,12 @@ if ! skipped java; then
     echo "projects vendor their own pinned Gradle Wrapper instead."
 fi
 
+if ! skipped vlc; then
+    section "VLC (apt)"
+    echo "Plays WAV/MP3/MP4 and just about everything else out of the box - no"
+    echo "separate codec packages needed."
+fi
+
 if ! skipped gh; then
     section "GitHub CLI (GitHub's own apt repo)"
     echo "Then \`gh auth login\` - the one interactive step in this whole"
@@ -437,7 +443,7 @@ if ! skipped handy && command -v handy >/dev/null 2>&1; then
     fi
 fi
 
-# scripts/20-gh.sh already handles auth (including the admin:public_key
+# scripts/21-gh.sh already handles auth (including the admin:public_key
 # scope) and verifies the SSH upload live, right as it happens - if that
 # ran this run, there's nothing left to check here. The only gap is if
 # the gh stage was skipped entirely, in which case the key was never

@@ -71,6 +71,9 @@ CLI tools like `black`/`poetry`/`ruff` in their own isolated environment
 apt - OpenJDK doesn't need a vendor repo the way Node does. No system-wide
 Gradle: most projects vendor their own pinned Gradle Wrapper instead.
 
+**Media playback** — VLC, for WAV/MP3/MP4 and just about everything else,
+straight from apt with no separate codec packages needed.
+
 **Claude Code & herdr** — Anthropic's CLI, plus herdr (a session
 sidebar/manager) wired up with native Claude Code session awareness.
 
@@ -121,11 +124,12 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `17-python.sh` | python3 + python3-venv + python3-pip + pipx | apt |
 | `18-nodejs.sh` | Node.js (current LTS) + npm | vendor apt repo |
 | `19-java.sh` | OpenJDK (current LTS) + Maven | apt |
-| `20-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
+| `20-vlc.sh` | VLC (plays WAV/MP3/MP4 and most everything else) | apt |
+| `21-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
-already-installed package. `20-gh.sh` is numbered last and is the one
+already-installed package. `21-gh.sh` is numbered last and is the one
 exception to "safe to walk away during Phase 2": until `gh` is
 authenticated, it needs you at the keyboard for a one-time browser
 approval - see "A couple of
@@ -164,7 +168,7 @@ warrants — useful if you need to get this approved for a work machine.
 **Ubuntu's own apt repos** (baseline OS trust): curl, wget, stow, gnupg,
 ca-certificates, software-properties-common, jq, ripgrep, fd-find, kitty,
 zsh, starship, vim, neovim, ydotool, minisign, tmux, python3,
-python3-venv, python3-pip, pipx, openjdk-25-jdk, maven.
+python3-venv, python3-pip, pipx, openjdk-25-jdk, maven, vlc.
 
 **Official vendor apt repos** (GPG-signed, each vendor's own documented
 setup — standard practice, not a special exception):
@@ -321,7 +325,7 @@ its own copy back to disk, the script also stops any running Handy
 instance before editing the file and restarts it after — editing it live
 underneath a running instance loses the edit to Handy's next autosave.
 
-**`20-gh.sh` is the one script here that isn't fully unattended, on
+**`21-gh.sh` is the one script here that isn't fully unattended, on
 purpose - and is numbered last because of it.** `gh auth login`'s OAuth
 flow needs a human to approve a one-time code in a browser — that's
 GitHub's actual security control proving this machine is really you, so
