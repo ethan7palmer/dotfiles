@@ -277,7 +277,9 @@ Two separate `.gitignore` files, on purpose:
   runtime files inside the tracked `home/.config/herdr/` directory,
   Claude Code's own runtime files inside the tracked `home/.claude/`
   directory, VS Code's own runtime files inside the tracked
-  `home/.config/Code/User/` directory, and
+  `home/.config/Code/` directory (both at the top level -
+  `CachedExtensionVSIXs/`, `logs/`, `machineid`, etc - and inside its
+  `User/` subdirectory), and
   `scripts/13-gnome-settings.sh`'s content-hashed wallpaper cache copies
   inside the tracked `home/.local/share/backgrounds/` directory -
   alongside the one file in each that actually is tracked config

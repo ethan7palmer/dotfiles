@@ -23,12 +23,17 @@
 /home/.local/share/backgrounds/.wallpaper-*.jpg
 
 # Same whole-directory-symlink issue as herdr/.claude above, but for VS
-# Code: on a machine where ~/.config/Code/User didn't already exist
-# before the first stow run (no prior VS Code launch), Stow symlinks the
-# whole directory as one unit - so every runtime file VS Code itself
-# writes on first launch (globalStorage/, workspaceStorage/, History/,
-# snippets/, chatLanguageModels.json, etc) lands inside this repo's
-# working tree as untracked files. Only settings.json is real tracked
-# config.
+# Code - and one level higher up than expected: on a machine where
+# ~/.config/Code doesn't exist at all yet (no prior VS Code launch), the
+# *whole* ~/.config/Code gets symlinked as one unit, not just the User/
+# subdirectory - because Code/User/settings.json is the only tracked
+# file under Code/ at all, so Code/ itself is the topmost directory that
+# didn't already exist. That means everything VS Code writes anywhere
+# under ~/.config/Code (CachedExtensionVSIXs/, CachedProfilesData/,
+# logs/, machineid, as well as User/'s own globalStorage/,
+# workspaceStorage/, History/, etc) lands inside this repo's working
+# tree as untracked files. Only settings.json is real tracked config.
+/home/.config/Code/*
+!/home/.config/Code/User/
 /home/.config/Code/User/*
 !/home/.config/Code/User/settings.json
