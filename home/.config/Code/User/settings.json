@@ -1,4 +1,6 @@
 {
-    "workbench.colorTheme": "Dark 2026",
-    "workbench.startupEditor": "none"
+    "workbench.colorTheme": "Rosé Pine Moon",
+    "workbench.startupEditor": "none",
+    "editor.fontFamily": "'Hack Nerd Font Mono', monospace",
+    "terminal.integrated.fontFamily": "'Hack Nerd Font Mono', monospace"
 }

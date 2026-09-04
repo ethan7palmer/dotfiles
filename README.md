@@ -43,10 +43,11 @@ shows both at once).
 file/text finder, VSCode-style multi-cursor, Neogit + gitsigns with a
 legible add/change/delete color scheme, Rosé Pine Moon), plain `vim` with
 no configuration for quick edits, and VS Code itself - installed and
-available for the occasional time it's genuinely the better tool, with
-just enough settings pre-seeded (`Dark 2026` color theme, startup
-walkthrough page turned off) that it skips its own first-run theme/keymap
-picker.
+available for the occasional time it's genuinely the better tool, with the
+`mvllow.rose-pine` extension installed and its own settings pre-seeded
+(Rosé Pine Moon color theme, Hack Nerd Font Mono in both the editor and
+its integrated terminal, startup walkthrough page turned off) to match
+Kitty/Neovim above and skip its own first-run theme/keymap picker.
 
 **Browser** — Google Chrome, set as the default browser. Launches with
 `--disable-features=Vulkan`: on an NVIDIA GPU under GNOME's default
@@ -130,7 +131,7 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `19-java.sh` | OpenJDK (current LTS) + Maven | apt |
 | `20-vlc.sh` | VLC (plays WAV/MP3/MP4 and most everything else) | apt |
 | `21-cli-tools.sh` | htop, btop (interactive process viewers) | apt |
-| `22-vscode.sh` | VS Code + pre-seeded `settings.json` (theme, no startup walkthrough) | vendor apt repo |
+| `22-vscode.sh` | VS Code + `mvllow.rose-pine` extension + pre-seeded `settings.json` | vendor apt repo + marketplace extension |
 | `23-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
@@ -188,6 +189,12 @@ setup — standard practice, not a special exception):
 - VS Code — `packages.microsoft.com`, Microsoft's own repo (no apt package
   exists in Ubuntu's own repos at all)
 
+**VS Code Marketplace** (installed via `code --install-extension`, VS
+Code's own signed/verified extension mechanism - the same trust model as
+the apt repos above, just a different registry):
+- `mvllow.rose-pine` — the color theme, so VS Code matches Kitty/Neovim's
+  Rosé Pine Moon.
+
 **Direct downloads / vendor scripts** (no apt package exists):
 - Hack Nerd Font Mono — a font tarball from `ryanoasis/nerd-fonts`'s GitHub
   releases. Static files, no code execution.
@@ -244,7 +251,7 @@ dotfiles/
     │   ├── herdr/config.toml
     │   ├── tmux/tmux.conf   # keybindings mirroring herdr's, see both files' comments
     │   ├── starship.toml
-    │   ├── Code/User/settings.json   # theme + no startup walkthrough
+    │   ├── Code/User/settings.json   # Rosé Pine Moon theme, matching font, no startup walkthrough
     │   └── xdg-terminals.list   # makes Kitty the default terminal app
     ├── .local/share/
     │   ├── backgrounds/wallpaper.jpg   # desktop background
