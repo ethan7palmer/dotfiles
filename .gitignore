@@ -15,3 +15,20 @@
 /home/.claude/*
 !/home/.claude/CLAUDE.md
 !/home/.claude/settings.json
+
+# scripts/13-gnome-settings.sh copies wallpaper.jpg to a content-hashed
+# filename in the same directory on every content change (see that
+# script's comment for why) - those cache copies are generated, not real
+# config. Only wallpaper.jpg itself is tracked.
+/home/.local/share/backgrounds/.wallpaper-*.jpg
+
+# Same whole-directory-symlink issue as herdr/.claude above, but for VS
+# Code: on a machine where ~/.config/Code/User didn't already exist
+# before the first stow run (no prior VS Code launch), Stow symlinks the
+# whole directory as one unit - so every runtime file VS Code itself
+# writes on first launch (globalStorage/, workspaceStorage/, History/,
+# snippets/, chatLanguageModels.json, etc) lands inside this repo's
+# working tree as untracked files. Only settings.json is real tracked
+# config.
+/home/.config/Code/User/*
+!/home/.config/Code/User/settings.json
