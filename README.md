@@ -125,11 +125,12 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `18-nodejs.sh` | Node.js (current LTS) + npm | vendor apt repo |
 | `19-java.sh` | OpenJDK (current LTS) + Maven | apt |
 | `20-vlc.sh` | VLC (plays WAV/MP3/MP4 and most everything else) | apt |
-| `21-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
+| `21-cli-tools.sh` | htop, btop (interactive process viewers) | apt |
+| `22-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
-already-installed package. `21-gh.sh` is numbered last and is the one
+already-installed package. `22-gh.sh` is numbered last and is the one
 exception to "safe to walk away during Phase 2": until `gh` is
 authenticated, it needs you at the keyboard for a one-time browser
 approval - see "A couple of
@@ -168,7 +169,7 @@ warrants — useful if you need to get this approved for a work machine.
 **Ubuntu's own apt repos** (baseline OS trust): curl, wget, stow, gnupg,
 ca-certificates, software-properties-common, jq, ripgrep, fd-find, kitty,
 zsh, starship, vim, neovim, ydotool, minisign, tmux, python3,
-python3-venv, python3-pip, pipx, openjdk-25-jdk, maven, vlc.
+python3-venv, python3-pip, pipx, openjdk-25-jdk, maven, vlc, htop, btop.
 
 **Official vendor apt repos** (GPG-signed, each vendor's own documented
 setup — standard practice, not a special exception):
@@ -325,7 +326,7 @@ its own copy back to disk, the script also stops any running Handy
 instance before editing the file and restarts it after — editing it live
 underneath a running instance loses the edit to Handy's next autosave.
 
-**`21-gh.sh` is the one script here that isn't fully unattended, on
+**`22-gh.sh` is the one script here that isn't fully unattended, on
 purpose - and is numbered last because of it.** `gh auth login`'s OAuth
 flow needs a human to approve a one-time code in a browser — that's
 GitHub's actual security control proving this machine is really you, so

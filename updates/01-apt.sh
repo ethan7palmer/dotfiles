@@ -27,6 +27,7 @@ PACKAGES=(
     nodejs
     openjdk-25-jdk maven
     vlc
+    htop btop
 )
 
 installed=()
