@@ -57,8 +57,9 @@ ${BOLD}Usage:${RESET} ./install.sh [OPTIONS]
 
 Provisions this machine: prereqs, Kitty, Hack Nerd Font, Chrome, zsh,
 Starship, git identity, an SSH key, vim, Docker, Claude Code, herdr, Handy,
-tmux, Python, Node.js, Java, VLC, htop/btop, VS Code, the GitHub CLI (last -
-the one interactive step), then symlinks home/ into \$HOME via GNU Stow.
+tmux, Python, Node.js, Java, VLC, htop/btop, VS Code, Godot, the GitHub CLI
+(last - the one interactive step), then symlinks home/ into \$HOME via GNU
+Stow.
 Safe to re-run any time.
 
 ${BOLD}Options:${RESET}
@@ -371,6 +372,16 @@ if ! skipped vscode; then
     echo "unconfigured, for whenever it's genuinely the better tool."
 fi
 
+if ! skipped godot; then
+    section "Godot 4 (official GitHub release)"
+    echo "No apt package exists for the current 4.x line (Ubuntu's own godot3"
+    echo "is stuck on the old 3.6 branch). Standard, GDScript-only editor -"
+    echo "no C#/.NET build - downloaded straight from GitHub and checked"
+    echo "against a SHA512 manifest published in the same release, installed"
+    echo "to ~/.local/bin (no sudo), with a .desktop entry + icon so it shows"
+    echo "up in the GNOME app grid."
+fi
+
 if ! skipped gh; then
     section "GitHub CLI (GitHub's own apt repo)"
     echo "Then \`gh auth login\` - the one interactive step in this whole"
@@ -443,6 +454,18 @@ fi
 if ! skipped docker && id -nG "${USER}" 2>/dev/null | grep -qw docker; then
     section "Docker"
     action "Log out and back in (or reboot) for docker group access to apply."
+fi
+
+if ! skipped stow-symlinks && [ -f "${HOME}/.config/environment.d/999-local-bin-path.conf" ] &&
+    command -v systemctl >/dev/null 2>&1 &&
+    ! systemctl --user show-environment 2>/dev/null | grep -q "^PATH=.*${HOME}/.local/bin"; then
+    section "~/.local/bin on gnome-shell's PATH"
+    action "REBOOT (not just log out/in - the systemd --user instance"
+    action "gnome-shell runs under can outlive a GNOME logout if anything"
+    action "else still references it, so it won't reliably re-read this)"
+    action "for gnome-shell itself to see ~/.local/bin on PATH - only"
+    action "matters for a *future* ~/.local/bin app launched via a"
+    action ".desktop entry; Godot's own doesn't depend on this."
 fi
 
 if ! skipped handy && command -v handy >/dev/null 2>&1; then

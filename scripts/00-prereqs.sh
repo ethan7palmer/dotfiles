@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Install what the remaining scripts require, plus a couple of general CLI
-# tools used across configs (ripgrep/fd for Neovim's fuzzy pickers).
+# tools used across configs (ripgrep/fd for Neovim's fuzzy pickers, unzip
+# for scripts/23-godot.sh's release archive).
 #
 set -euo pipefail
 source "$(dirname "$0")/../lib/colors.sh"
@@ -16,6 +17,7 @@ PACKAGES=(
     jq
     ripgrep
     fd-find
+    unzip
 )
 
 missing=()

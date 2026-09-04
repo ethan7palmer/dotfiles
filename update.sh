@@ -25,9 +25,9 @@ for arg in "$@"; do
             cat <<EOF
 ${BOLD}Usage:${RESET} ./update.sh [OPTIONS]
 
-Updates apt packages, Handy, herdr, Claude Code, zinit + its zsh plugins,
-and Neovim's lazy.nvim plugins - everything this repo installs, and
-nothing else. Safe to re-run any time.
+Updates apt packages, Handy, herdr, Claude Code, Godot, zinit + its zsh
+plugins, and Neovim's lazy.nvim plugins - everything this repo installs,
+and nothing else. Safe to re-run any time.
 
 ${BOLD}Options:${RESET}
   --skip=STAGE,...    Skip these stages (comma-separated). Stage ids are

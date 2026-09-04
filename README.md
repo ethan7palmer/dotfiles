@@ -79,6 +79,14 @@ Gradle: most projects vendor their own pinned Gradle Wrapper instead.
 **Media playback** — VLC, for WAV/MP3/MP4 and just about everything else,
 straight from apt with no separate codec packages needed.
 
+**Godot** — the standard (GDScript-only) build of Godot 4, the current
+engine line — Ubuntu's apt repo only has the old 3.6 branch. No sudo:
+installed as a single binary to `~/.local/bin`, checked against a SHA512
+manifest published in the same GitHub release, with a `.desktop` entry +
+icon so it shows up in the GNOME app grid like any other app - see "A
+couple of deliberate design choices" below for why that `.desktop` file
+is generated on the fly rather than a plain file this repo tracks.
+
 **Claude Code & herdr** — Anthropic's CLI, plus herdr (a session
 sidebar/manager) wired up with native Claude Code session awareness.
 
@@ -132,11 +140,12 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `20-vlc.sh` | VLC (plays WAV/MP3/MP4 and most everything else) | apt |
 | `21-cli-tools.sh` | htop, btop (interactive process viewers) | apt |
 | `22-vscode.sh` | VS Code + `mvllow.rose-pine` extension + pre-seeded `settings.json` | vendor apt repo + marketplace extension |
-| `23-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
+| `23-godot.sh` | Godot 4 (standard, GDScript-only build) + generated `.desktop` entry + icon | GitHub release, SHA512-checked |
+| `24-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
-already-installed package. `23-gh.sh` is numbered last and is the one
+already-installed package. `24-gh.sh` is numbered last and is the one
 exception to "safe to walk away during Phase 2": until `gh` is
 authenticated, it needs you at the keyboard for a one-time browser
 approval - see "A couple of
@@ -166,6 +175,7 @@ as `install.sh`.
 | `03-herdr.sh` | `herdr update` (it self-updates) |
 | `04-zsh-plugins.sh` | `zinit self-update` + `zinit update --all` |
 | `05-neovim-plugins.sh` | Headless `Lazy! sync`, rewrites the tracked `lazy-lock.json` |
+| `06-godot.sh` | Re-runs `scripts/23-godot.sh`, which already resolves the newest 4.x release and no-ops if it's already installed |
 
 ## Where things come from
 
@@ -173,8 +183,8 @@ Everything this repo installs, grouped by source and how much scrutiny it
 warrants — useful if you need to get this approved for a work machine.
 
 **Ubuntu's own apt repos** (baseline OS trust): curl, wget, stow, gnupg,
-ca-certificates, software-properties-common, jq, ripgrep, fd-find, kitty,
-zsh, starship, vim, neovim, ydotool, minisign, tmux, python3,
+ca-certificates, software-properties-common, jq, ripgrep, fd-find, unzip,
+kitty, zsh, starship, vim, neovim, ydotool, minisign, tmux, python3,
 python3-venv, python3-pip, pipx, openjdk-25-jdk, maven, vlc, htop, btop.
 
 **Official vendor apt repos** (GPG-signed, each vendor's own documented
@@ -213,6 +223,12 @@ the apt repos above, just a different registry):
   above, not a live signature, and a weaker guarantee than the `.deb`'s
   (a checksum proves the file matches what was pinned, not that the pin
   itself was ever independently trustworthy).
+- Godot — the official Linux editor `.zip` from `godotengine/godot-builds`'s
+  GitHub releases, checked against a SHA512 manifest published in the same
+  release (same guarantee tier as herdr above - corruption/CDN issues, not
+  a signature against the release itself, since Godot doesn't publish one).
+  Its `.desktop` entry's icon is `main/app_icon.png`, fetched straight from
+  the matching tag of `godotengine/godot`'s main repo.
 
 **Git-cloned source** (code that runs inside your shell/editor):
 - zsh: [`zdharma-continuum/zinit`](https://github.com/zdharma-continuum/zinit)
@@ -252,10 +268,13 @@ dotfiles/
     │   ├── tmux/tmux.conf   # keybindings mirroring herdr's, see both files' comments
     │   ├── starship.toml
     │   ├── Code/User/settings.json   # Rosé Pine Moon theme, matching font, no startup walkthrough
+    │   ├── environment.d/999-local-bin-path.conf   # see "deliberate design choices" below
     │   └── xdg-terminals.list   # makes Kitty the default terminal app
     ├── .local/share/
     │   ├── backgrounds/wallpaper.jpg   # desktop background
     │   └── applications/google-chrome.desktop   # adds --disable-features=Vulkan
+    │       # (godot.desktop is NOT here - scripts/23-godot.sh generates
+    │       # it straight into ~/.local/share/applications, see below)
     ├── .claude/               # CLAUDE.md + settings.json
     ├── .zshrc / .bashrc / .bash_aliases / .bash_functions
     ├── .gitconfig / .gitignore_global
@@ -293,6 +312,51 @@ Two separate `.gitignore` files, on purpose:
   excludes it.
 
 ## A couple of deliberate design choices
+
+**Godot's `.desktop` file is generated by `scripts/23-godot.sh`, not a
+plain file this repo tracks and Stow symlinks in.** Its `Exec` key has
+to be `~/.local/bin/godot`'s real, already-resolved absolute path,
+for two independent reasons layered on top of each other, both found
+by actually clicking the launcher rather than just eyeballing the file:
+
+1. A `.desktop` file's `Exec` value is *never* passed through a shell -
+   unlike a shell prompt, `~` or `$HOME` in it is taken completely
+   literally, not expanded. So a portable, tracked-by-Stow file - which
+   can't know any one machine's username ahead of time - can't spell
+   this path at all without either hardcoding a specific `$HOME` or
+   wrapping it in a shell invocation. A wrapper (`/bin/sh -c '...'`)
+   sounds like the fix, but the quoting it requires is genuinely
+   brittle: a form that `desktop-file-validate` accepted outright
+   *failed* GLib's own `GDesktopAppInfo` parser (`constructor returned
+   NULL`) - the two tools don't implement quite the same grammar.
+   Rather than fight that, the script writes the file itself, at
+   install time, with `bash` doing the one variable substitution it's
+   actually good at - so the deployed `Exec` line never contains a
+   shell, a quote, or a variable at all.
+2. Separately: `~/.local/bin` is on `PATH` for interactive shells via
+   `.bashrc`/`.zshrc`, but gnome-shell - which is what actually launches
+   a clicked `.desktop` entry - runs under the systemd `--user`
+   instance, not a login shell, and never sourced those files. Even if
+   `Exec=godot` had resolved some other way, it would have failed here.
+   `~/.config/environment.d/999-local-bin-path.conf` fixes this
+   properly (systemd's own mechanism for exactly this), and is kept
+   even though (1) above means Godot no longer strictly depends on it -
+   any *future* thing installed into `~/.local/bin` and launched via a
+   `.desktop` entry will need it too. Its filename deliberately ignores
+   environment.d's own recommended 60-90 numbering range for local
+   files: `/etc/environment` is itself parsed as `99-environment.conf`
+   (see `/usr/lib/environment.d/99-environment.conf`, a symlink to it),
+   and Ubuntu's snapd ships `990-snapd.conf` appending `/snap/bin` to
+   `PATH` - environment.d resolves a given key using whichever file
+   sets it *last* in filename-sorted order, full stop, not merged - so
+   anything numbered in the "normal" local range would have its `PATH`
+   silently clobbered by either of those instead of extending them.
+   One more layer under that, also found the hard way: this file only
+   takes effect for a systemd `--user` instance that starts fresh - and
+   that instance can keep running, unchanged, across a full GNOME
+   logout/login if anything else (another session, a lingering
+   service) still references it, so the reliable way to actually pick
+   this up is a **reboot**, not just logging out and back in.
 
 **herdr runs after Stow, not before.** `herdr integration install claude`
 writes a machine-specific absolute path into `~/.claude/settings.json`. If
@@ -355,7 +419,7 @@ its own copy back to disk, the script also stops any running Handy
 instance before editing the file and restarts it after — editing it live
 underneath a running instance loses the edit to Handy's next autosave.
 
-**`23-gh.sh` is the one script here that isn't fully unattended, on
+**`24-gh.sh` is the one script here that isn't fully unattended, on
 purpose - and is numbered last because of it.** `gh auth login`'s OAuth
 flow needs a human to approve a one-time code in a browser — that's
 GitHub's actual security control proving this machine is really you, so
