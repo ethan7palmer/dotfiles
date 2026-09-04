@@ -42,9 +42,11 @@ shows both at once).
 **Editor** — Neovim as the daily driver (lazy.nvim, which-key, a fuzzy
 file/text finder, VSCode-style multi-cursor, Neogit + gitsigns with a
 legible add/change/delete color scheme, Rosé Pine Moon), plain `vim` with
-no configuration for quick edits, and VS Code itself - also unconfigured,
-installed and available for the occasional time it's genuinely the better
-tool.
+no configuration for quick edits, and VS Code itself - installed and
+available for the occasional time it's genuinely the better tool, with
+just enough settings pre-seeded (`Dark 2026` color theme, startup
+walkthrough page turned off) that it skips its own first-run theme/keymap
+picker.
 
 **Browser** — Google Chrome, set as the default browser. Launches with
 `--disable-features=Vulkan`: on an NVIDIA GPU under GNOME's default
@@ -128,7 +130,7 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `19-java.sh` | OpenJDK (current LTS) + Maven | apt |
 | `20-vlc.sh` | VLC (plays WAV/MP3/MP4 and most everything else) | apt |
 | `21-cli-tools.sh` | htop, btop (interactive process viewers) | apt |
-| `22-vscode.sh` | VS Code, unconfigured | vendor apt repo |
+| `22-vscode.sh` | VS Code + pre-seeded `settings.json` (theme, no startup walkthrough) | vendor apt repo |
 | `23-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
@@ -242,6 +244,7 @@ dotfiles/
     │   ├── herdr/config.toml
     │   ├── tmux/tmux.conf   # keybindings mirroring herdr's, see both files' comments
     │   ├── starship.toml
+    │   ├── Code/User/settings.json   # theme + no startup walkthrough
     │   └── xdg-terminals.list   # makes Kitty the default terminal app
     ├── .local/share/
     │   ├── backgrounds/wallpaper.jpg   # desktop background
