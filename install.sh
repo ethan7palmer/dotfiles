@@ -4,7 +4,7 @@
 #
 #   Phase 1 — interactive pre-flight (summary + explicit confirmation)
 #   Phase 2 — unattended execution of scripts/*.sh in numeric order, except
-#             22-gh.sh's one-time gh auth login browser approval - the only
+#             23-gh.sh's one-time gh auth login browser approval - the only
 #             script here that can't be made fully unattended, which is
 #             exactly why it's numbered last: every fully-automated stage
 #             runs first, so this is the only point you need to be present
@@ -57,9 +57,9 @@ ${BOLD}Usage:${RESET} ./install.sh [OPTIONS]
 
 Provisions this machine: prereqs, Kitty, Hack Nerd Font, Chrome, zsh,
 Starship, git identity, an SSH key, vim, Docker, Claude Code, herdr, Handy,
-tmux, Python, Node.js, Java, VLC, htop/btop, the GitHub CLI (last - the one
-interactive step), then symlinks home/ into \$HOME via GNU Stow. Safe to
-re-run any time.
+tmux, Python, Node.js, Java, VLC, htop/btop, VS Code, the GitHub CLI (last -
+the one interactive step), then symlinks home/ into \$HOME via GNU Stow.
+Safe to re-run any time.
 
 ${BOLD}Options:${RESET}
   --update-identity   Re-prompt for git user.name/user.email and the SSH
@@ -365,6 +365,12 @@ if ! skipped cli-tools; then
     echo "Interactive process viewers."
 fi
 
+if ! skipped vscode; then
+    section "VS Code (apt, via Microsoft's official signed repository)"
+    echo "Not the daily driver (Neovim is) - just kept installed,"
+    echo "unconfigured, for whenever it's genuinely the better tool."
+fi
+
 if ! skipped gh; then
     section "GitHub CLI (GitHub's own apt repo)"
     echo "Then \`gh auth login\` - the one interactive step in this whole"
@@ -448,7 +454,7 @@ if ! skipped handy && command -v handy >/dev/null 2>&1; then
     fi
 fi
 
-# scripts/22-gh.sh already handles auth (including the admin:public_key
+# scripts/23-gh.sh already handles auth (including the admin:public_key
 # scope) and verifies the SSH upload live, right as it happens - if that
 # ran this run, there's nothing left to check here. The only gap is if
 # the gh stage was skipped entirely, in which case the key was never

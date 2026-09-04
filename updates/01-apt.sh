@@ -28,6 +28,7 @@ PACKAGES=(
     openjdk-25-jdk maven
     vlc
     htop btop
+    code
 )
 
 installed=()

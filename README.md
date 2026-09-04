@@ -42,7 +42,9 @@ shows both at once).
 **Editor** — Neovim as the daily driver (lazy.nvim, which-key, a fuzzy
 file/text finder, VSCode-style multi-cursor, Neogit + gitsigns with a
 legible add/change/delete color scheme, Rosé Pine Moon), plain `vim` with
-no configuration for quick edits.
+no configuration for quick edits, and VS Code itself - also unconfigured,
+installed and available for the occasional time it's genuinely the better
+tool.
 
 **Browser** — Google Chrome, set as the default browser. Launches with
 `--disable-features=Vulkan`: on an NVIDIA GPU under GNOME's default
@@ -126,11 +128,12 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `19-java.sh` | OpenJDK (current LTS) + Maven | apt |
 | `20-vlc.sh` | VLC (plays WAV/MP3/MP4 and most everything else) | apt |
 | `21-cli-tools.sh` | htop, btop (interactive process viewers) | apt |
-| `22-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
+| `22-vscode.sh` | VS Code, unconfigured | vendor apt repo |
+| `23-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
 duplicates PATH entries, re-clones plugin repos, or errors on an
-already-installed package. `22-gh.sh` is numbered last and is the one
+already-installed package. `23-gh.sh` is numbered last and is the one
 exception to "safe to walk away during Phase 2": until `gh` is
 authenticated, it needs you at the keyboard for a one-time browser
 approval - see "A couple of
@@ -180,6 +183,8 @@ setup — standard practice, not a special exception):
   Ubuntu's `universe` package, which lags upstream by dozens of versions)
 - Node.js — `deb.nodesource.com`, NodeSource's own repo (same reasoning
   as `gh` - Ubuntu's own package lags upstream by entire major versions)
+- VS Code — `packages.microsoft.com`, Microsoft's own repo (no apt package
+  exists in Ubuntu's own repos at all)
 
 **Direct downloads / vendor scripts** (no apt package exists):
 - Hack Nerd Font Mono — a font tarball from `ryanoasis/nerd-fonts`'s GitHub
@@ -326,7 +331,7 @@ its own copy back to disk, the script also stops any running Handy
 instance before editing the file and restarts it after — editing it live
 underneath a running instance loses the edit to Handy's next autosave.
 
-**`22-gh.sh` is the one script here that isn't fully unattended, on
+**`23-gh.sh` is the one script here that isn't fully unattended, on
 purpose - and is numbered last because of it.** `gh auth login`'s OAuth
 flow needs a human to approve a one-time code in a browser — that's
 GitHub's actual security control proving this machine is really you, so
