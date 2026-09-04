@@ -4,3 +4,14 @@
 # nothing to fold into at the file level. Only config.toml is real config.
 /home/.config/herdr/*
 !/home/.config/herdr/config.toml
+
+# Same issue, but for ~/.claude: on a machine where ~/.claude didn't
+# already exist before the first stow run (no prior Claude Code use),
+# Stow symlinks the whole directory as one unit instead of folding into
+# it file-by-file — so every runtime file Claude Code itself writes
+# afterward (projects/, sessions/, shell-snapshots/, history.jsonl,
+# daemon/, etc) lands inside this repo's working tree as untracked
+# files. Only CLAUDE.md and settings.json are real tracked config.
+/home/.claude/*
+!/home/.claude/CLAUDE.md
+!/home/.claude/settings.json

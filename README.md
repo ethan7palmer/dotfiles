@@ -273,10 +273,18 @@ Two separate `.gitignore` files, on purpose:
 - `home/.gitignore_global` is symlinked to `~/.gitignore_global` and wired
   up as git's `core.excludesfile`, so it applies to *every* repo on the
   machine — generic, repo-agnostic junk only (`*.swp`, `.DS_Store`, etc).
-- The repo-root `.gitignore` only applies to *this* repo — right now just
-  herdr's own runtime files (logs, session state), which live inside the
-  tracked `home/.config/herdr/` directory alongside the one file that
-  actually is tracked, `config.toml`.
+- The repo-root `.gitignore` only applies to *this* repo — herdr's own
+  runtime files (logs, session state) inside the tracked
+  `home/.config/herdr/` directory, and Claude Code's own runtime files
+  (session history, project cache, etc) inside the tracked `home/.claude/`
+  directory, alongside the files in each that actually are tracked
+  (`config.toml`; `CLAUDE.md` and `settings.json`, respectively). Both
+  exist for the same reason: Stow symlinks a whole directory as one unit,
+  instead of folding into it file-by-file, whenever that directory didn't
+  already exist on the machine before the first `stow` run — so on a
+  fresh machine, every runtime file the app itself later writes there
+  lands inside this repo's working tree as untracked files unless
+  `.gitignore` excludes it.
 
 ## A couple of deliberate design choices
 
