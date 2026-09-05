@@ -85,7 +85,9 @@ installed as a single binary to `~/.local/bin`, checked against a SHA512
 manifest published in the same GitHub release, with a `.desktop` entry +
 icon so it shows up in the GNOME app grid like any other app - see "A
 couple of deliberate design choices" below for why that `.desktop` file
-is generated on the fly rather than a plain file this repo tracks.
+is generated on the fly rather than a plain file this repo tracks. Also
+installs gdtoolkit (`gdformat`/`gdlint`, GDScript's formatter/linter) via
+pipx, the same way any other Python CLI tool in this repo would be.
 
 **Claude Code & herdr** — Anthropic's CLI, plus herdr (a session
 sidebar/manager) wired up with native Claude Code session awareness.
@@ -140,7 +142,7 @@ run in a predictable order. Add a new step by adding a new numbered file —
 | `20-vlc.sh` | VLC (plays WAV/MP3/MP4 and most everything else) | apt |
 | `21-cli-tools.sh` | htop, btop (interactive process viewers) | apt |
 | `22-vscode.sh` | VS Code + `mvllow.rose-pine` extension + pre-seeded `settings.json` | vendor apt repo + marketplace extension |
-| `23-godot.sh` | Godot 4 (standard, GDScript-only build) + generated `.desktop` entry + icon | GitHub release, SHA512-checked |
+| `23-godot.sh` | Godot 4 (standard, GDScript-only build) + generated `.desktop` entry + icon + gdtoolkit (`gdformat`/`gdlint`) | GitHub release, SHA512-checked + pipx |
 | `24-gh.sh` | GitHub CLI + `gh auth login`, uploading the SSH key above | vendor apt repo |
 
 Every script uses `set -euo pipefail` and is safe to re-run — nothing here
@@ -175,7 +177,7 @@ as `install.sh`.
 | `03-herdr.sh` | `herdr update` (it self-updates) |
 | `04-zsh-plugins.sh` | `zinit self-update` + `zinit update --all` |
 | `05-neovim-plugins.sh` | Headless `Lazy! sync`, rewrites the tracked `lazy-lock.json` |
-| `06-godot.sh` | Re-runs `scripts/23-godot.sh`, which already resolves the newest 4.x release and no-ops if it's already installed |
+| `06-godot.sh` | Re-runs `scripts/23-godot.sh`, which already resolves the newest 4.x release and no-ops if it's already installed, then `pipx upgrade gdtoolkit` |
 
 ## Where things come from
 
@@ -229,6 +231,12 @@ the apt repos above, just a different registry):
   a signature against the release itself, since Godot doesn't publish one).
   Its `.desktop` entry's icon is `main/app_icon.png`, fetched straight from
   the matching tag of `godotengine/godot`'s main repo.
+
+**PyPI, via pipx** (installed into its own isolated environment, not the
+system interpreter):
+- gdtoolkit (`gdformat`/`gdlint`) — GDScript's formatter/linter, installed
+  alongside Godot in `scripts/23-godot.sh` since there's no apt package for
+  it either.
 
 **Git-cloned source** (code that runs inside your shell/editor):
 - zsh: [`zdharma-continuum/zinit`](https://github.com/zdharma-continuum/zinit)

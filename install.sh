@@ -379,7 +379,8 @@ if ! skipped godot; then
     echo "no C#/.NET build - downloaded straight from GitHub and checked"
     echo "against a SHA512 manifest published in the same release, installed"
     echo "to ~/.local/bin (no sudo), with a .desktop entry + icon so it shows"
-    echo "up in the GNOME app grid."
+    echo "up in the GNOME app grid. Also installs gdtoolkit (gdformat,"
+    echo "gdlint) via pipx, GDScript's formatter/linter."
 fi
 
 if ! skipped gh; then

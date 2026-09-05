@@ -26,6 +26,10 @@
 # comment - and unlike a plain shell prompt, a .desktop file's Exec
 # value is never passed through a shell, so "~" or "$HOME" in it would
 # be taken completely literally, not expanded).
+#
+# Also installs gdtoolkit (gdformat/gdlint, GDScript's formatter/linter) -
+# no apt package exists for it either, so it goes in via pipx, the same
+# mechanism scripts/17-python.sh sets up for any other Python CLI tool.
 set -euo pipefail
 source "$(dirname "$0")/../lib/colors.sh"
 
@@ -96,3 +100,10 @@ MimeType=application/x-godot-project;
 Categories=Development;IDE;
 StartupWMClass=Godot
 EOF
+
+if command -v gdformat >/dev/null 2>&1 && command -v gdlint >/dev/null 2>&1; then
+    ok "gdtoolkit already installed — nothing to do."
+else
+    change "Installing gdtoolkit (gdformat, gdlint)..."
+    pipx install gdtoolkit
+fi
