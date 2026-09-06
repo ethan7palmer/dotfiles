@@ -123,6 +123,10 @@ HANDY_DATA_DIR="${HOME}/.local/share/com.pais.handy"
 HANDY_SETTINGS="${HANDY_DATA_DIR}/settings_store.json"
 HANDY_MODELS_DIR="${HANDY_DATA_DIR}/models"
 
+# Used below to seed whats_new_last_seen_version — see the comment there for
+# why that has to be set explicitly rather than left for Handy to default.
+INSTALLED_HANDY_VERSION="$(dpkg-query -W -f='${Version}' handy)"
+
 # Handy's default is 1.0 (100%) — quieter so the recording start/stop cue
 # doesn't summon GNOME's volume OSD as jarringly as it did at full volume.
 AUDIO_FEEDBACK_VOLUME="0.2"
@@ -156,8 +160,30 @@ if [ ! -f "${HANDY_SETTINGS}" ]; then
     # not a flat top-level object. Confirmed against the key tauri-plugin-store
     # actually uses, not assumed from the README (which got the app-data-dir
     # path wrong — see the comment above).
-    jq -n --arg model "${MODEL_ID}" --argjson volume "${AUDIO_FEEDBACK_VOLUME}" \
+    #
+    # Every field below is set explicitly rather than left for Handy to
+    # default, because Handy can't tell "brand new install" from "upgrading
+    # an old settings file" apart from whether the file already exists — and
+    # since we write this file before Handy's own first launch, Handy always
+    # sees the second case and runs its upgrade-migration heuristics instead
+    # of its normal fresh-install defaults (src-tauri/src/settings.rs,
+    # apply_settings_migrations / get_settings). Confirmed two fields this
+    # actually bites:
+    #   - overlay_style: fresh-install default is platform-gated (None on
+    #     Linux, Live elsewhere — default_overlay_style()), but the
+    #     migration path ignores that and infers Live from the old
+    #     overlay_position whenever overlay_style is merely absent — which
+    #     it always is here. Set explicitly to "none" to get the intended
+    #     Linux behavior instead of Handy's guess.
+    #   - whats_new_last_seen_version: fresh-install default is the running
+    #     version (so a new user never sees "What's New" for the release
+    #     they installed on), but the same migration path blanks it to ""
+    #     when absent, popping "What's New" once on first real launch. Set
+    #     explicitly to the version we just installed to match intended
+    #     fresh-install behavior.
+    jq -n --arg model "${MODEL_ID}" --argjson volume "${AUDIO_FEEDBACK_VOLUME}" --arg version "${INSTALLED_HANDY_VERSION}" \
         '{settings: {audio_feedback: true, audio_feedback_volume: $volume, autostart_enabled: true, start_hidden: true, selected_model: $model, onboarding_completed: true,
+            overlay_style: "none", whats_new_last_seen_version: $version,
             bindings: {transcribe: {id: "transcribe", name: "Transcribe", description: "Converts your speech into text.", default_binding: "ctrl+space", current_binding: ""}}}}' \
         >"${HANDY_SETTINGS}"
 else
@@ -169,9 +195,10 @@ else
     # Empty string, not absent — see the top-of-file comment on why Handy's
     # own "transcribe" shortcut is deliberately disabled.
     current_transcribe_binding="$(jq -r '.settings.bindings.transcribe.current_binding // "unset"' "${HANDY_SETTINGS}")"
+    current_overlay_style="$(jq -r '.settings.overlay_style // "unset"' "${HANDY_SETTINGS}")"
     if [ "${current_audio}" = "true" ] && [ "${current_volume}" = "${AUDIO_FEEDBACK_VOLUME}" ] \
         && [ "${current_autostart}" = "true" ] && [ "${current_start_hidden}" = "true" ] && [ -n "${current_model}" ] \
-        && [ "${current_transcribe_binding}" = "" ]; then
+        && [ "${current_transcribe_binding}" = "" ] && [ "${current_overlay_style}" = "none" ]; then
         ok "Handy preferences already set — nothing to do."
     else
         # Handy loads this file into memory on launch and periodically
@@ -203,7 +230,8 @@ else
                 description: "Converts your speech into text.",
                 default_binding: (.settings.bindings.transcribe.default_binding // "ctrl+space"),
                 current_binding: ""
-            })
+            }) |
+            .settings.overlay_style = "none"
         ' "${HANDY_SETTINGS}" >"${HANDY_SETTINGS}.tmp"
         mv "${HANDY_SETTINGS}.tmp" "${HANDY_SETTINGS}"
     fi
