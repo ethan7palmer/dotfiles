@@ -7,10 +7,16 @@
 #   - ydotool, the text-injection backend. Handy's usual Wayland path
 #     (`wtype`) doesn't work on Ubuntu 26.04 (see Handy's own README,
 #     "Linux Notes"); ydotool is the documented fallback there.
-#   - A GNOME custom keyboard shortcut. Handy's in-app global shortcut UI
-#     is a no-op on Wayland (its `rdev` backend can't register system
-#     shortcuts there) — Handy's docs say to bind a desktop-level shortcut
-#     to a CLI flag instead, which is what this does.
+#   - A GNOME custom keyboard shortcut bound to a CLI flag, used as the one
+#     and only way to toggle transcription. Handy also has its own built-in
+#     global shortcut (default ctrl+space, via tauri_plugin_global_shortcut),
+#     and that backend does register successfully on GNOME/Wayland here —
+#     so left alone, both the GNOME shortcut and Handy's own default binding
+#     fire independently and can double-toggle. This script disables Handy's
+#     internal "transcribe" binding in its settings (empty current_binding —
+#     confirmed against src-tauri/src/shortcut/tauri_impl.rs: an empty
+#     binding fails validate_shortcut and is simply never registered) so the
+#     GNOME shortcut below is the sole trigger.
 #
 # Also downloads Handy's own recommended default model and seeds its
 # settings (quiet audio feedback, launch-at-login without popping its
@@ -151,7 +157,8 @@ if [ ! -f "${HANDY_SETTINGS}" ]; then
     # actually uses, not assumed from the README (which got the app-data-dir
     # path wrong — see the comment above).
     jq -n --arg model "${MODEL_ID}" --argjson volume "${AUDIO_FEEDBACK_VOLUME}" \
-        '{settings: {audio_feedback: true, audio_feedback_volume: $volume, autostart_enabled: true, start_hidden: true, selected_model: $model, onboarding_completed: true}}' \
+        '{settings: {audio_feedback: true, audio_feedback_volume: $volume, autostart_enabled: true, start_hidden: true, selected_model: $model, onboarding_completed: true,
+            bindings: {transcribe: {id: "transcribe", name: "Transcribe", description: "Converts your speech into text.", default_binding: "ctrl+space", current_binding: ""}}}}' \
         >"${HANDY_SETTINGS}"
 else
     current_audio="$(jq -r '.settings.audio_feedback // false' "${HANDY_SETTINGS}")"
@@ -159,8 +166,12 @@ else
     current_autostart="$(jq -r '.settings.autostart_enabled // false' "${HANDY_SETTINGS}")"
     current_start_hidden="$(jq -r '.settings.start_hidden // false' "${HANDY_SETTINGS}")"
     current_model="$(jq -r '.settings.selected_model // ""' "${HANDY_SETTINGS}")"
+    # Empty string, not absent — see the top-of-file comment on why Handy's
+    # own "transcribe" shortcut is deliberately disabled.
+    current_transcribe_binding="$(jq -r '.settings.bindings.transcribe.current_binding // "unset"' "${HANDY_SETTINGS}")"
     if [ "${current_audio}" = "true" ] && [ "${current_volume}" = "${AUDIO_FEEDBACK_VOLUME}" ] \
-        && [ "${current_autostart}" = "true" ] && [ "${current_start_hidden}" = "true" ] && [ -n "${current_model}" ]; then
+        && [ "${current_autostart}" = "true" ] && [ "${current_start_hidden}" = "true" ] && [ -n "${current_model}" ] \
+        && [ "${current_transcribe_binding}" = "" ]; then
         ok "Handy preferences already set — nothing to do."
     else
         # Handy loads this file into memory on launch and periodically
@@ -185,7 +196,14 @@ else
             .settings.start_hidden = true |
             (if (.settings.selected_model // "") == "" then
                 .settings.selected_model = $model | .settings.onboarding_completed = true
-             else . end)
+             else . end) |
+            .settings.bindings.transcribe = ((.settings.bindings.transcribe // {}) + {
+                id: "transcribe",
+                name: "Transcribe",
+                description: "Converts your speech into text.",
+                default_binding: (.settings.bindings.transcribe.default_binding // "ctrl+space"),
+                current_binding: ""
+            })
         ' "${HANDY_SETTINGS}" >"${HANDY_SETTINGS}.tmp"
         mv "${HANDY_SETTINGS}.tmp" "${HANDY_SETTINGS}"
     fi
